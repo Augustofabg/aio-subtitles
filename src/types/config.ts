@@ -6,8 +6,16 @@ export interface ProviderConfigItem {
   customEndpoint?: string;
 }
 
+export interface CustomAddonConfig {
+  id: string;
+  name: string;
+  manifestUrl: string;
+  enabled: boolean;
+}
+
 export interface UserConfig {
   providers: Record<string, ProviderConfigItem>;
+  customAddons: CustomAddonConfig[];
   providerPriority: string[];
   languages: string[];
   languageRemap: Record<string, string>;

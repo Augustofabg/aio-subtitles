@@ -8,6 +8,7 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     'subsource': { enabled: true },
     'addic7ed': { enabled: true }
   },
+  customAddons: [],
   providerPriority: [
     'opensubtitles-rest',
     'subdl',
@@ -83,8 +84,23 @@ export function decodeUserConfig(encodedStr?: string | null): UserConfig {
  * Merges partial user config with defaults, ensuring valid types and bounds
  */
 export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
+  const customAddons = Array.isArray((partial as unknown as { customAddons?: unknown }).customAddons)
+    ? ((partial as unknown as { customAddons: unknown[] }).customAddons
+        .filter(a => a && typeof a === 'object' && typeof (a as { manifestUrl?: unknown }).manifestUrl === 'string')
+        .map(a => {
+          const item = a as { id?: string; name?: string; manifestUrl: string; enabled?: boolean };
+          return {
+            id: (item.id && String(item.id).trim()) || `addon-${Math.random().toString(36).substring(2, 8)}`,
+            name: (item.name && String(item.name).trim()) || 'External Addon',
+            manifestUrl: String(item.manifestUrl).trim(),
+            enabled: typeof item.enabled === 'boolean' ? item.enabled : true
+          };
+        }))
+    : [];
+
   const result: UserConfig = {
     providers: { ...DEFAULT_USER_CONFIG.providers },
+    customAddons,
     providerPriority: Array.isArray(partial.providerPriority) && partial.providerPriority.length > 0
       ? partial.providerPriority
       : [...DEFAULT_USER_CONFIG.providerPriority],

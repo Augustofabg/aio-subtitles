@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-assets.js",
+    "test": "tsx test/providerValidation.test.ts",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit"
   },

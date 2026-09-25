@@ -1063,6 +1063,141 @@ body {
   padding: 10px 14px;
 }
 
+/* Custom Addons Import Section */
+.import-addon-box {
+  margin-bottom: 20px;
+}
+
+.import-addon-box label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.url-input-button-group {
+  display: flex;
+  gap: 8px;
+}
+
+.url-input-button-group input {
+  flex: 1;
+}
+
+.import-feedback {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.import-feedback.success {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #6ee7b7;
+}
+
+.import-feedback.error {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+}
+
+.custom-addons-heading {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.custom-addons-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.custom-addon-card {
+  background: rgba(13, 18, 30, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: var(--transition);
+}
+
+.custom-addon-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(18, 24, 42, 0.85);
+}
+
+.custom-addon-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.custom-addon-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.custom-addon-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #fff;
+}
+
+.badge-manifest-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.custom-addon-url {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 4px;
+}
+
+.custom-addon-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-remove-addon {
+  background: transparent;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--accent-rose);
+  padding: 5px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-remove-addon:hover {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
 /* Footer */
 .app-footer {
   text-align: center;

@@ -1,0 +1,101 @@
+import { BaseSubtitleProvider } from './base';
+import { SubtitleQuery, ProviderContext, RawSubtitleItem } from '../types/provider';
+
+interface GenericStremioSubtitleItem {
+  id?: string;
+  url: string;
+  lang: string;
+  file?: string;
+  title?: string;
+  SubEncoding?: string;
+  [key: string]: unknown;
+}
+
+interface GenericStremioSubtitlesResponse {
+  subtitles?: GenericStremioSubtitleItem[];
+}
+
+export class GenericStremioAddonProvider extends BaseSubtitleProvider {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly requiresApiKey = false;
+  readonly defaultEnabled = true;
+  private readonly baseUrl: string;
+
+  constructor(addonId: string, addonName: string, manifestUrl: string) {
+    super();
+    this.id = addonId;
+    // ALWAYS guarantee a non-empty name from manifest (fixes the 'Desconhecido' bug)
+    this.name = addonName && addonName.trim() !== '' ? addonName.trim() : (addonId || 'External Addon');
+    this.description = `Custom imported Stremio subtitle addon: ${this.name}`;
+
+    // Normalize URL: convert stremio:// to https:// and strip trailing /manifest.json
+    let cleanUrl = manifestUrl.trim();
+    if (cleanUrl.startsWith('stremio://')) {
+      cleanUrl = cleanUrl.replace(/^stremio:\/\//, 'https://');
+    }
+    this.baseUrl = cleanUrl.replace(/\/manifest\.json$/i, '').replace(/\/+$/, '');
+  }
+
+  protected async executeSearch(
+    query: SubtitleQuery,
+    _context: ProviderContext,
+    signal: AbortSignal
+  ): Promise<RawSubtitleItem[]> {
+    // Construct Stremio protocol subtitles endpoint
+    const url = `${this.baseUrl}/subtitles/${encodeURIComponent(query.type)}/${encodeURIComponent(query.id)}.json`;
+
+    const response = await this.httpGet<GenericStremioSubtitlesResponse>(
+      url,
+      { timeout: 10000 },
+      signal
+    );
+
+    if (!response.data || !Array.isArray(response.data.subtitles)) {
+      return [];
+    }
+
+    const items: RawSubtitleItem[] = [];
+
+    for (const sub of response.data.subtitles) {
+      if (!sub.url || !sub.lang) continue;
+
+      // Extract release or file name
+      let release = sub.file || sub.title;
+      if (!release) {
+        try {
+          const parsed = new URL(sub.url);
+          const pathname = parsed.pathname;
+          const fname = pathname.substring(pathname.lastIndexOf('/') + 1);
+          if (fname && fname.includes('.')) {
+            release = decodeURIComponent(fname).replace(/\.(srt|vtt|sub)$/i, '');
+          }
+        } catch {
+          // Ignore URL parsing errors
+        }
+      }
+
+      if (!release) {
+        release = `${this.name} Subtitle`;
+      }
+
+      const isHI = /(hearing\.impaired|\.hi\.|\[hi\]|\(hi\)|\[cc\]|\.cc\.)/i.test(release);
+
+      items.push({
+        id: `${this.id}-${sub.id || Math.random().toString(36).substring(2, 9)}`,
+        // ALWAYS store the non-empty provider identifier and display name
+        provider: this.id,
+        providerName: this.name,
+        url: sub.url,
+        lang: sub.lang,
+        release,
+        format: sub.url.toLowerCase().endsWith('.vtt') ? 'vtt' : 'srt',
+        hearingImpaired: isHI,
+        rawMetadata: sub as Record<string, unknown>
+      });
+    }
+
+    return items;
+  }
+}

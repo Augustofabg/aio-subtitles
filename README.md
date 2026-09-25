@@ -50,11 +50,24 @@ O addon executa todas as fontes em paralelo com `Promise.allSettled` e timeout i
 * **Addic7ed:** Especializado em episódios e temporadas de séries de TV.
 * **Interface `SubtitleProvider` Extensível:** Permite plugar novas fontes em 1 único arquivo TypeScript.
 
-### 6. 🧹 Deduplicação Inteligente & Priorização
+### 6. 🌐 Suporte a QUALQUER Addon via Manifest URL (Importação Livre)
+Diferente de agregadores fechados que só permitem fontes pré-integradas, o **AIO Subtitles** permite colar o link de manifest (`https://.../manifest.json` ou `stremio://...`) de **qualquer addon de legendas do ecossistema Stremio** (como Titlovi, Legendas.net, etc.):
+* **Validação em tempo real:** O backend valida se o manifest declara o recurso `subtitles` e extrai o nome oficial do addon.
+* **Mesmo Pipeline:** O addon externo entra no mesmo pipeline dos provedores nativos: timeout configurável, whitelist de idiomas, remapeamento de código (`por -> pob`), deduplicação e rótulos personalizados.
+* **Sem limite:** Adicione quantos addons externos desejar e ordene sua prioridade na interface.
+
+### 6.1 🛡️ Prevenção Rigorosa do Bug do "Desconhecido"
+Identificamos e eliminamos a causa raiz de um bug comum em outros agregadores, onde legendas de addons importados aparecem todas com o rótulo genérico *"Desconhecido"*:
+* **Propagação Obrigatória de `providerName`:** Todo conector (nativo ou importado) associa um `providerName` fixo e não-vazio derivado do manifest oficial a cada legenda normalizada.
+* **Fallback Inteligente:** O formatador de template `{provider}` nunca cai em "Desconhecido", priorizando: `providerName` &rarr; `provider` &rarr; `manifest.name` &rarr; `AIOSubtitles`.
+* **Teste Automatizado Obrigatório:** Inclui suite de testes (`npm test`) que valida que nenhum conector configurado ou mock retorna `null`, vazio ou a string literal "Desconhecido".
+* **Confirmação Visual na UI:** A interface de configuração exibe a tag `Lido do Manifest: [Nome]` ao lado de cada addon importado para validação imediata do usuário.
+
+### 7. 🧹 Deduplicação Inteligente & Priorização
 * **Deduplicação:** Detecta legendas repetidas do mesmo release usando análise fuzzy (>85% de similaridade) e mesmo idioma/HI.
 * **Priorização:** Arraste ou reordene seus provedores favoritos no topo da lista.
 
-### 7. 🔒 Zero Dependência de Banco de Dados
+### 8. 🔒 Zero Dependência de Banco de Dados
 * Configuração do usuário inteiramente codificada em **Base64URL** e embutida na própria URL do manifest:
   `https://seu-dominio.com/:config/manifest.json`
 * A mesma URL pode ser aberta a qualquer momento em `/:config/configure` para editar suas preferências!
@@ -205,23 +218,26 @@ Como o addon utiliza **configuração em Base64URL embutida no path**, ele é **
 
 Acesse `http://localhost:7000/configure` (ou seu domínio) no navegador:
 
-1. **Fontes de Legenda:**
-   * Ative ou desative os conectores desejados.
+1. **Fontes de Legenda Nativas:**
+   * Ative ou desative os conectores desejados (OpenSubtitles v3, REST, SubDL, Subsource, Addic7ed).
    * Se possuir conta no OpenSubtitles.com, insira sua `API Key` (opcional).
-2. **Filtragem de Idiomas (Whitelist):**
+2. **Addons Externos (Importação Livre por URL):**
+   * Cole a URL do `manifest.json` (ou `stremio://`) de qualquer addon de legendas.
+   * O sistema valida se o addon fornece legendas, exibe o nome oficial verificado do manifest e o integra ao pipeline.
+3. **Filtragem de Idiomas (Whitelist):**
    * Selecione seus idiomas permitidos (ex: Português do Brasil e Inglês).
    * Utilize os atalhos rápidos (`🇧🇷 PT-BR + 🇺🇸 EN`). Qualquer legenda fora desses idiomas será sumariamente ignorada.
-3. **Remapeamento de Códigos:**
+4. **Remapeamento de Códigos:**
    * Configure regras como `por -> pob`, `pt-br -> pob`. O addon converterá qualquer código antes de entregar ao Stremio, unificando a aba de exibição.
-4. **Template de Rótulo:**
+5. **Template de Rótulo:**
    * Personalize com variáveis como `[{provider}] {lang_flag} {release} {hi}`.
-   * Visualize a simulação instantânea no mockup do player Stremio ao lado.
-5. **Proxy de Legendas:**
+   * Visualize a simulação instantânea no mockup do player Stremio ao lado (o `{provider}` nunca fica como "Desconhecido").
+6. **Proxy de Legendas:**
    * Deixe marcado para injeção de nome no `Content-Disposition`, descompactação de ZIP e correção UTF-8.
-6. **Prioridade e Timeout:**
-   * Reordene a prioridade dos provedores clicando nas setas.
+7. **Prioridade e Timeout:**
+   * Reordene a prioridade dos provedores e addons importados clicando nas setas.
    * Ajuste o timeout por provedor (padrão: 6000ms).
-7. **Instalação:**
+8. **Instalação:**
    * Clique em **Gerar & Atualizar Manifest**.
    * Copie a URL gerada, ou clique em **Instalar no Stremio** (aciona o protocolo `stremio://`), ou escaneie o **QR Code** no aplicativo Nuvio / Stremio Mobile!
 

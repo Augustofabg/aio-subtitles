@@ -28,13 +28,19 @@ const state = {
     providerTimeoutMs: 6000,
     deduplication: true,
     proxySubtitles: true,
-    cacheTtlMinutes: 30
+    cacheTtlMinutes: 30,
+    customAddons: []
   }
 };
 
 // DOM Elements
 const providersListEl = document.getElementById('providers-list');
 const priorityListEl = document.getElementById('priority-list');
+const manifestImportInput = document.getElementById('manifest-import-input');
+const btnImportAddon = document.getElementById('btn-import-addon');
+const btnImportText = document.getElementById('btn-import-text');
+const importFeedbackBox = document.getElementById('import-feedback-box');
+const customAddonsListEl = document.getElementById('custom-addons-list');
 const selectedLanguagesTagsEl = document.getElementById('selected-languages-tags');
 const languagesPickerEl = document.getElementById('languages-picker');
 const langSearchInput = document.getElementById('lang-search');
@@ -115,12 +121,129 @@ async function initApp() {
   }
 
   renderProviders();
+  renderCustomAddons();
   renderLanguages();
   renderRemapRules();
   renderPriorityList();
   setupEventListeners();
   updateLivePreview();
   generateManifestUrl();
+}
+
+// 1.1 Render Custom Addons
+function renderCustomAddons() {
+  customAddonsListEl.innerHTML = '';
+  if (!Array.isArray(state.config.customAddons) || state.config.customAddons.length === 0) {
+    customAddonsListEl.innerHTML = '<div style="color:var(--text-dim);font-size:0.82rem;padding:6px 0;">Nenhum addon externo importado ainda. Cole uma URL acima para adicionar!</div>';
+    return;
+  }
+
+  state.config.customAddons.forEach((addon, idx) => {
+    const isEnabled = addon.enabled !== false;
+    const card = document.createElement('div');
+    card.className = 'custom-addon-card';
+    card.innerHTML = `
+      <div class="custom-addon-info">
+        <div class="custom-addon-name-row">
+          <span class="custom-addon-name">${addon.name}</span>
+          <span class="badge-manifest-name" title="Nome verificado no manifest oficial">Lido do Manifest: ${addon.name}</span>
+        </div>
+        <div class="custom-addon-url" title="${addon.manifestUrl}">${addon.manifestUrl}</div>
+      </div>
+      <div class="custom-addon-actions">
+        <div class="toggle-wrap">
+          <input type="checkbox" id="custom-addon-toggle-${idx}" ${isEnabled ? 'checked' : ''}>
+          <label for="custom-addon-toggle-${idx}" class="toggle-slider"></label>
+        </div>
+        <button type="button" class="btn-remove-addon" title="Remover este addon">&times; Remover</button>
+      </div>
+    `;
+
+    // Toggle
+    card.querySelector(`#custom-addon-toggle-${idx}`).addEventListener('change', (e) => {
+      addon.enabled = e.target.checked;
+      updateLivePreview();
+      generateManifestUrl();
+    });
+
+    // Remove
+    card.querySelector('.btn-remove-addon').addEventListener('click', () => {
+      state.config.customAddons = state.config.customAddons.filter((_, i) => i !== idx);
+      state.config.providerPriority = state.config.providerPriority.filter(id => id !== addon.id);
+      renderCustomAddons();
+      renderPriorityList();
+      updateLivePreview();
+      generateManifestUrl();
+    });
+
+    customAddonsListEl.appendChild(card);
+  });
+}
+
+// Import Custom Addon from Manifest URL
+async function handleImportAddon() {
+  const url = manifestImportInput.value.trim();
+  if (!url) {
+    showImportFeedback('Por favor, informe a URL do manifest.json', 'error');
+    return;
+  }
+
+  btnImportAddon.disabled = true;
+  btnImportText.textContent = 'Validando...';
+  importFeedbackBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/manifest/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.valid) {
+      showImportFeedback(data.error || 'Erro ao validar o manifest do addon', 'error');
+      return;
+    }
+
+    // Check if already imported
+    if (state.config.customAddons.some(a => a.manifestUrl === data.manifestUrl || a.id === data.id)) {
+      showImportFeedback(`O addon "${data.name}" já está na sua lista!`, 'error');
+      return;
+    }
+
+    // Add to config (guarantee non-empty name from manifest!)
+    const newAddon = {
+      id: data.id,
+      name: data.name,
+      manifestUrl: data.manifestUrl,
+      enabled: true
+    };
+
+    state.config.customAddons.push(newAddon);
+    if (!state.config.providerPriority.includes(newAddon.id)) {
+      state.config.providerPriority.push(newAddon.id);
+    }
+
+    manifestImportInput.value = '';
+    showImportFeedback(`✅ Addon "${data.name}" importado e verificado com sucesso!`, 'success');
+
+    renderCustomAddons();
+    renderPriorityList();
+    updateLivePreview();
+    generateManifestUrl();
+  } catch (err) {
+    showImportFeedback(`Falha na conexão: ${err.message}`, 'error');
+  } finally {
+    btnImportAddon.disabled = false;
+    btnImportText.textContent = '+ Adicionar Addon';
+  }
+}
+
+function showImportFeedback(msg, type) {
+  importFeedbackBox.textContent = msg;
+  importFeedbackBox.className = `import-feedback ${type}`;
+  importFeedbackBox.style.display = 'block';
 }
 
 // 1. Render Providers
@@ -304,13 +427,15 @@ function updateRemapRulesFromDOM() {
 function renderPriorityList() {
   priorityListEl.innerHTML = '';
   state.config.providerPriority.forEach((id, idx) => {
-    const provider = state.providers.find(p => p.id === id) || { name: id };
+    const customFound = (state.config.customAddons || []).find(a => a.id === id);
+    const provider = state.providers.find(p => p.id === id) || (customFound ? { name: customFound.name, isCustom: true } : { name: id });
     const item = document.createElement('div');
     item.className = 'priority-item';
     item.innerHTML = `
       <div class="priority-item-left">
         <span class="priority-order-badge">${idx + 1}</span>
         <span>${provider.name}</span>
+        ${customFound ? '<span class="badge-manifest-name" style="font-size:0.68rem;padding:1px 6px;">Addon Externo</span>' : ''}
       </div>
       <div class="priority-btns">
         <button type="button" class="priority-btn btn-up" ${idx === 0 ? 'disabled style="opacity:0.3;"' : ''} title="Subir prioridade">&uarr;</button>
@@ -350,9 +475,23 @@ function updateLivePreview() {
 
   const mockData = [
     { provider: 'OpenSubtitles', lang: 'POB', lang_flag: '🇧🇷', release: '1080p.BluRay.x264-SPARKS', hi: '[CC]', format: 'SRT', fps: '23.976fps' },
-    { provider: 'SubDL', lang: 'POB', lang_flag: '🇧🇷', release: '2160p.UHD.HDR.WEB-DL.DDP5.1', hi: '', format: 'SRT', fps: '24fps' },
-    { provider: 'Subsource', lang: 'POB', lang_flag: '🇧🇷', release: '720p.HDTV.x264-AVS', hi: '[CC]', format: 'SRT', fps: '25fps' }
+    { provider: 'SubDL', lang: 'POB', lang_flag: '🇧🇷', release: '2160p.UHD.HDR.WEB-DL.DDP5.1', hi: '', format: 'SRT', fps: '24fps' }
   ];
+
+  if (state.config.customAddons && state.config.customAddons.length > 0) {
+    const customFirst = state.config.customAddons[0];
+    mockData.push({
+      provider: customFirst.name,
+      lang: 'POB',
+      lang_flag: '🇧🇷',
+      release: '1080p.WEB-DL.Dual',
+      hi: '[CC]',
+      format: 'SRT',
+      fps: '23.976fps'
+    });
+  } else {
+    mockData.push({ provider: 'Subsource', lang: 'POB', lang_flag: '🇧🇷', release: '720p.HDTV.x264-AVS', hi: '[CC]', format: 'SRT', fps: '25fps' });
+  }
 
   mockupSubList.innerHTML = '';
   mockData.forEach(item => {
@@ -416,6 +555,12 @@ function generateManifestUrl() {
 
 // 7. Setup Event Listeners
 function setupEventListeners() {
+  // Import custom addon
+  btnImportAddon.addEventListener('click', handleImportAddon);
+  manifestImportInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleImportAddon();
+  });
+
   // Search languages
   langSearchInput.addEventListener('input', (e) => {
     renderLanguagesDropdown(e.target.value);

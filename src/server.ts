@@ -102,6 +102,76 @@ export function createServer(): express.Application {
     res.json({ providers: list });
   });
 
+  // API: Validate external Stremio subtitle addon manifest URL
+  app.post('/api/manifest/validate', async (req: Request, res: Response) => {
+    let inputUrl = (req.body?.url as string) || '';
+    if (!inputUrl || inputUrl.trim() === '') {
+      res.status(400).json({ valid: false, error: 'URL do manifest não pode estar vazia.' });
+      return;
+    }
+
+    inputUrl = inputUrl.trim();
+    if (inputUrl.startsWith('stremio://')) {
+      inputUrl = inputUrl.replace(/^stremio:\/\//, 'https://');
+    }
+
+    if (!inputUrl.toLowerCase().endsWith('/manifest.json')) {
+      inputUrl = `${inputUrl.replace(/\/+$/, '')}/manifest.json`;
+    }
+
+    try {
+      const axios = require('axios');
+      const response = await axios.get(inputUrl, {
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'AIOSubtitles/1.0.0 (Stremio Addon Validator)',
+          'Accept': 'application/json'
+        }
+      });
+
+      const manifest = response.data;
+      if (!manifest || typeof manifest !== 'object') {
+        res.status(400).json({ valid: false, error: 'A resposta do endpoint não é um JSON de manifest válido.' });
+        return;
+      }
+
+      // Check for subtitles resource
+      const hasSubtitles = Array.isArray(manifest.resources) && manifest.resources.some((r: unknown) => {
+        if (typeof r === 'string') return r.toLowerCase() === 'subtitles';
+        if (typeof r === 'object' && r !== null && 'name' in r) {
+          return String((r as { name: string }).name).toLowerCase() === 'subtitles';
+        }
+        return false;
+      });
+
+      if (!hasSubtitles) {
+        res.status(400).json({
+          valid: false,
+          error: `O addon "${manifest.name || manifest.id || 'Externo'}" não declara o recurso de legendas ('subtitles'). Somente addons que fornecem legendas são suportados.`
+        });
+        return;
+      }
+
+      const addonName = manifest.name && String(manifest.name).trim() !== ''
+        ? String(manifest.name).trim()
+        : (manifest.id ? String(manifest.id).trim() : 'External Subtitles Addon');
+
+      res.json({
+        valid: true,
+        id: manifest.id || `custom-${Math.random().toString(36).substring(2, 9)}`,
+        name: addonName,
+        description: manifest.description || '',
+        manifestUrl: inputUrl
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(400).json({
+        valid: false,
+        error: `Não foi possível acessar o manifest em "${inputUrl}": ${msg}`
+      });
+    }
+  });
+
   // API: Live preview rendering
   app.post('/api/preview', (req: Request, res: Response) => {
     const template = req.body.template || DEFAULT_USER_CONFIG.namingTemplate;

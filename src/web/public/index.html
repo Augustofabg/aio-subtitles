@@ -54,13 +54,43 @@
           <div class="card-header">
             <div class="card-icon">⚡</div>
             <div>
-              <h2>Fontes de Legenda (Provedores)</h2>
+              <h2>Fontes de Legenda Nativas (Provedores)</h2>
               <p>Ative os conectores desejados e configure credenciais opcionais</p>
             </div>
           </div>
           <div class="card-body">
             <div id="providers-list" class="providers-container">
               <!-- Dynamically populated or rendered -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1.1: Free Import of ANY Addon via Manifest URL -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon">🔗</div>
+            <div>
+              <h2>Addons Externos (Importação Livre por Manifest URL)</h2>
+              <p>Importe qualquer addon de legendas do Stremio por URL. Ele terá todos os poderes de filtro, remapeamento e rótulo!</p>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="import-addon-box">
+              <label for="manifest-import-input">URL do Manifest do Addon:</label>
+              <div class="url-input-button-group">
+                <input type="text" id="manifest-import-input" class="input-code" placeholder="https://.../manifest.json ou stremio://...">
+                <button type="button" id="btn-import-addon" class="btn btn-secondary">
+                  <span id="btn-import-text">+ Adicionar Addon</span>
+                </button>
+              </div>
+              <div id="import-feedback-box" class="import-feedback" style="display:none;"></div>
+            </div>
+
+            <div class="custom-addons-heading">
+              <span>Addons Externos Importados:</span>
+            </div>
+            <div id="custom-addons-list" class="custom-addons-container">
+              <!-- Dynamically populated list of imported addons -->
             </div>
           </div>
         </div>

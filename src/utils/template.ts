@@ -17,8 +17,15 @@ export interface TemplateContext {
  */
 export function buildTemplateContext(item: RawSubtitleItem, displayLang?: string): TemplateContext {
   const langCode = displayLang || item.lang;
+  
+  // Bug 6.1 fix: Guarantee provider is never empty or "Desconhecido"
+  let cleanProvider = item.providerName || item.provider || 'AIOSubtitles';
+  if (cleanProvider.trim().toLowerCase() === 'desconhecido' || cleanProvider.trim().toLowerCase() === 'unknown') {
+    cleanProvider = (item.provider && item.provider.toLowerCase() !== 'desconhecido') ? item.provider : 'AIOSubtitles';
+  }
+
   return {
-    provider: item.providerName || item.provider || 'AIOSubtitles',
+    provider: cleanProvider,
     lang: langCode.toUpperCase(),
     lang_flag: getLanguageFlag(langCode),
     lang_name: getLanguageDisplayName(langCode),
