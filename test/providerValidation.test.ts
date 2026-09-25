@@ -1,10 +1,8 @@
 import { getAllProviders } from '../src/providers';
 import { GenericStremioAddonProvider } from '../src/providers/genericStremioAddon';
-import { buildTemplateContext, renderTemplate } from '../src/utils/template';
 import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../src/utils/normalizer';
-import { registerProxyDownload } from '../src/proxy/subtitleProxy';
 import { RawSubtitleItem } from '../src/types/provider';
-import { getAggregatedSubtitles, assertCleanSubtitleItem } from '../src/core/aggregator';
+import { getAggregatedSubtitles } from '../src/core/aggregator';
 import { DEFAULT_USER_CONFIG } from '../src/config/userConfig';
 import { UserConfig } from '../src/types/config';
 import { globalSubtitleCache } from '../src/utils/cache';
@@ -55,14 +53,14 @@ for (const custom of testCustomAddons) {
   console.log(`  ✅ Provedor genérico importado verificado: [${genericProv.id}] -> "${genericProv.name}"`);
 }
 
-// 3. Bug 6.1: Test mock item normalization and template rendering
-console.log('\n--- Teste 3: Renderização de Templates e Fallbacks ---');
+// 3. Test Provider ID & Subtitle Item Integrity
+console.log('\n--- Teste 3: Integridade de Provedores e Itens de Legenda ---');
 const mockItems: RawSubtitleItem[] = [
   {
     id: 'test-1',
-    provider: 'opensubtitles-v3',
-    providerName: 'OpenSubtitles v3',
-    url: 'https://example.com/sub1.srt',
+    provider: 'opensubtitles-rest',
+    providerName: 'OpenSubtitles REST',
+    url: 'https://api.opensubtitles.com/download/sub1.srt',
     lang: 'pob',
     release: '1080p.BluRay-SPARKS'
   },
@@ -73,34 +71,15 @@ const mockItems: RawSubtitleItem[] = [
     url: 'https://example.com/sub2.srt',
     lang: 'eng',
     release: 'WEBRip-AMZN'
-  },
-  {
-    id: 'test-3-fallback',
-    provider: 'custom-addon-id',
-    providerName: '', // empty name test to verify fallback
-    url: 'https://example.com/sub3.srt',
-    lang: 'pob',
-    release: 'HDTV-LOL'
   }
 ];
 
-const template = '[{provider}] {lang_flag} {release}';
-
 for (const item of mockItems) {
-  const ctx = buildTemplateContext(item);
-  const rendered = renderTemplate(template, ctx);
-
-  if (!ctx.provider || ctx.provider.trim() === '' || ctx.provider.toLowerCase() === 'desconhecido') {
-    console.error(`❌ Falha crítica: TemplateContext.provider é vazio ou "Desconhecido" para item:`, item);
+  if (!item.provider || !item.url || !item.lang) {
+    console.error(`❌ Item inválido:`, item);
     process.exit(1);
   }
-
-  if (rendered.includes('Desconhecido') || rendered.includes('undefined')) {
-    console.error(`❌ Falha crítica: Legenda renderizada contém "Desconhecido" ou "undefined": "${rendered}"`);
-    process.exit(1);
-  }
-
-  console.log(`  ✅ Legenda formatada com sucesso: "${rendered}"`);
+  console.log(`  ✅ Item de legenda íntegro: [${item.provider}] lang=${item.lang} url=${item.url}`);
 }
 
 // 4. Bug 6.2: Test Language Normalization & Desconhecido category prevention
@@ -134,86 +113,16 @@ if (!resultUnknown.valid || resultUnknown.normalizedLang !== 'und') {
 }
 console.log(`  ✅ Idioma não identificado com allowUnknown=true mapeado para "und"`);
 
-// 5. Bug 6.3: Test Short ID Proxy and prevention of base64 leak in ID and URL
-console.log('\n--- Teste 5: Bug 6.3 - Prevenção de Vazamento de Base64 em Rótulo/ID ---');
-const longTargetUrl = 'https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/1952160592';
-const customFilename = '[OpenSubtitles v3] 🇧🇷 Breaking.Bad.S01E01.srt';
-
-const shortId = registerProxyDownload({
-  originalUrl: longTargetUrl,
-  filename: customFilename,
-  provider: 'opensubtitles-v3',
-  format: 'srt'
-});
-
-const generatedUrl = `http://localhost:7000/download/${shortId}/${encodeURIComponent(customFilename)}`;
-const generatedId = `opensubtitles-v3-pob-1`;
-
-if (generatedUrl.includes('aHR0c') || generatedId.includes('aHR0c')) {
-  console.error(`❌ Falha crítica: URL ou ID contém base64! URL: ${generatedUrl}, ID: ${generatedId}`);
-  process.exit(1);
-}
-
-if (!generatedUrl.includes(`/download/${shortId}/`)) {
-  console.error(`❌ Falha: URL gerada não usa o endpoint limpo de download com shortId!`);
-  process.exit(1);
-}
-
-console.log(`  ✅ ID Limpo (sem base64): "${generatedId}"`);
-console.log(`  ✅ URL de Download Limpa (sem base64): "${generatedUrl}"`);
-
-// 6. Bug 6.5: Test assertCleanSubtitleItem rejects URLs and >80 chars unspaced strings
-console.log('\n--- Teste 6: Bug 6.5 - Validação/Assert contra Vazamento de URL no ID ou Rótulo ---');
-// 6a. Clean values should pass
-assertCleanSubtitleItem('subdl-pob-1', '[SubDL] 🇧🇷 1080p.BluRay');
-console.log('  ✅ assertCleanSubtitleItem aceitou ID e rótulo limpos com sucesso');
-
-// 6b. URL in ID must throw
-try {
-  assertCleanSubtitleItem('https://external.com/sub/123', '[SubDL] 🇧🇷 1080p');
-  console.error('❌ Falha: assertCleanSubtitleItem não barrou URL no ID!');
-  process.exit(1);
-} catch (e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
-  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso URL no ID: ${msg}`);
-}
-
-// 6c. URL in label must throw
-try {
-  assertCleanSubtitleItem('subdl-pob-1', 'https://external.com/sub.srt');
-  console.error('❌ Falha: assertCleanSubtitleItem não barrou URL no rótulo!');
-  process.exit(1);
-} catch (e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
-  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso URL no rótulo: ${msg}`);
-}
-
-// 6d. String > 80 chars without spaces must throw
-try {
-  const longHash = 'a'.repeat(85);
-  assertCleanSubtitleItem(longHash, '[SubDL] 🇧🇷 1080p');
-  console.error('❌ Falha: assertCleanSubtitleItem não barrou token > 80 caracteres sem espaços!');
-  process.exit(1);
-} catch (e: unknown) {
-  const msg = e instanceof Error ? e.message : String(e);
-  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso token > 80 caracteres sem espaços: ${msg}`);
-}
-
-// 7. Bug 6.5 Integration Test:
-// Simula uma resposta de conector com lang: "pt-BR" e um id/url originais longos,
-// e verifica que a resposta final tem:
-// (a) lang normalizado para pob
-// (b) id curto e sem substring de URL
-// (c) rótulo/nome de arquivo igual ao gerado pelo template configurado, não ao original do conector
-console.log('\n--- Teste 7: Bug 6.5 - Teste de Integração de Pipeline Completo ---');
+// 5. Integration Test: Pipeline returns direct original id, normalized lang, and direct url
+console.log('\n--- Teste 5: Validação do Pipeline Direto (sem templates/proxies) ---');
 
 async function runPipelineIntegrationTest(): Promise<void> {
   const mockRawExternalSubtitles: RawSubtitleItem[] = [
     {
-      id: 'aHR0cHM6Ly9zdWJzNS5zdHJlbS5pby9lbi9kb3dubG9hZC9zdWJlbmNvZGluZy1zdHJlbWlvLXV0ZjgvZmlsZS8xOTUyMTYwNTky',
+      id: 'sub-ext-101',
       provider: 'external-addon',
       providerName: 'External Subs Addon',
-      url: 'https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/1952160592?token=xyz123abc456&user=999',
+      url: 'https://subs5.strem.io/en/download/file/1952160592.srt',
       lang: 'pt-BR', // BCP-47 requiring normalization to pob
       release: 'Breaking.Bad.S01E01.720p.HDTV.x264'
     }
@@ -230,11 +139,9 @@ async function runPipelineIntegrationTest(): Promise<void> {
   const testUserConfig: UserConfig = {
     ...DEFAULT_USER_CONFIG,
     languages: ['pob', 'eng'], // Whitelist pob
-    namingTemplate: '[{provider}] {lang_flag} {release}',
     languageRemap: { 'pt-br': 'pob', 'por': 'pob' },
     allowUnknownLanguages: false,
-    deduplication: true,
-    proxySubtitles: true
+    deduplication: true
   };
 
   // Seed the cache with raw subtitle to simulate connector execution
@@ -268,27 +175,19 @@ async function runPipelineIntegrationTest(): Promise<void> {
   }
   console.log(`  ✅ (a) lang normalizado com sucesso para: "${finalSub.lang}"`);
 
-  // (b) id curto e sem substring de URL
-  if (finalSub.id.includes('http') || finalSub.id.includes('https') || finalSub.id.length > 50) {
-    console.error(`❌ Falha no critério (b): id contém URL ou excede tamanho curto: "${finalSub.id}"`);
+  // (b) id original preservado diretamente
+  if (finalSub.id !== 'sub-ext-101') {
+    console.error(`❌ Falha no critério (b): id esperado "sub-ext-101", recebeu "${finalSub.id}"`);
     process.exit(1);
   }
-  console.log(`  ✅ (b) id curto e sem URL: "${finalSub.id}" (length: ${finalSub.id.length})`);
+  console.log(`  ✅ (b) id original preservado: "${finalSub.id}"`);
 
-  // (c) rótulo/nome de arquivo igual ao gerado pelo template configurado, não ao original do conector
-  const expectedTemplateLabel = '[External Subs Addon] 🇧🇷 Breaking.Bad.S01E01.720p.HDTV.x264';
-  if (finalSub.title !== expectedTemplateLabel || finalSub.file !== `${expectedTemplateLabel}.srt`) {
-    console.error(`❌ Falha no critério (c): rótulo não bate com o template!\nEsperado: "${expectedTemplateLabel}"\nRecebido title: "${finalSub.title}"\nRecebido file: "${finalSub.file}"`);
+  // (c) url original preservada diretamente
+  if (finalSub.url !== 'https://subs5.strem.io/en/download/file/1952160592.srt') {
+    console.error(`❌ Falha no critério (c): url esperada original, recebeu "${finalSub.url}"`);
     process.exit(1);
   }
-  console.log(`  ✅ (c) rótulo/nome de arquivo igual ao gerado pelo template configurado: "${finalSub.title}"`);
-
-  // Also verify (d) proxy URL points to /download/:idCurto.srt
-  if (!finalSub.url.startsWith(`${testBaseUrl}/download/`) || !finalSub.url.endsWith('.srt')) {
-    console.error(`❌ Falha no critério proxy: URL não aponta para /download/:idCurto.srt: "${finalSub.url}"`);
-    process.exit(1);
-  }
-  console.log(`  ✅ (d) URL de proxy interna verificada: "${finalSub.url}"`);
+  console.log(`  ✅ (c) url original preservada diretamente: "${finalSub.url}"`);
 
   console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
   process.exit(0);

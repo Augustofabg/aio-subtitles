@@ -3,10 +3,8 @@ import { SubtitleQuery, RawSubtitleItem } from '../types/provider';
 import { UserConfig } from '../types/config';
 import { executeParallelSearch } from '../providers';
 import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../utils/normalizer';
-import { buildTemplateContext, renderTemplate } from '../utils/template';
 import { deduplicateSubtitles, prioritizeSubtitles } from '../utils/deduplicator';
 import { globalSubtitleCache } from '../utils/cache';
-import { registerProxyDownload } from '../proxy/subtitleProxy';
 import { Logger } from '../utils/logger';
 
 /**
@@ -50,50 +48,12 @@ export function parseSubtitleQuery(
 }
 
 /**
- * Bug 6.5 Assertion: Validates that id and label/filename never leak raw URLs
- * or unspaced tokens exceeding 80 characters (such as raw base64 or technical hashes).
- * Throws runtime error if an invalid or leaked value is detected.
- */
-export function assertCleanSubtitleItem(id: string, label: string): void {
-  if (!id || typeof id !== 'string') {
-    throw new Error('CRITICAL PIPELINE LEAK: Subtitle id is empty or invalid');
-  }
-  if (!label || typeof label !== 'string') {
-    throw new Error('CRITICAL PIPELINE LEAK: Subtitle label is empty or invalid');
-  }
-
-  // 1. Never allow http:// or https:// in id or label
-  if (/https?:\/\//i.test(id)) {
-    throw new Error(`CRITICAL PIPELINE LEAK: URL detected inside subtitle id: "${id}"`);
-  }
-  if (/https?:\/\//i.test(label)) {
-    throw new Error(`CRITICAL PIPELINE LEAK: URL detected inside subtitle label: "${label}"`);
-  }
-
-  // 2. Never allow id to exceed 80 characters without spaces
-  if (id.length > 80 && !id.includes(' ')) {
-    throw new Error(`CRITICAL PIPELINE LEAK: Subtitle id exceeds 80 characters without spaces: "${id}"`);
-  }
-
-  // 3. Never allow any token in label to exceed 80 characters without spaces (e.g. leaked base64)
-  const tokens = label.split(/\s+/);
-  for (const token of tokens) {
-    if (token.length > 80) {
-      throw new Error(`CRITICAL PIPELINE LEAK: Subtitle label contains unspaced token exceeding 80 characters: "${token.substring(0, 30)}..."`);
-    }
-  }
-}
-
-/**
- * Main subtitle aggregation pipeline strictly following Bug 6.5 7-step execution order:
- *
- * 1. Fetch raw results from all connectors (native + custom external addons).
- * 2. BEFORE ANYTHING ELSE: Normalize `lang` to standard ISO 639-2. Discard (or isolate) invalid ones.
- * 3. Whitelist filter on already normalized `lang`.
- * 4. Prioritization and Deduplication.
- * 5. ONLY AFTER steps 1-4: Apply custom naming/label template to generate brand-new id and url.
- * 6. Generate short readable slug ID (no URLs, no base64) + runtime validation assert.
- * 7. Store upstream URL in proxy store and return internal proxy URL (/download/:idCurto.srt).
+ * Main subtitle aggregation pipeline
+ * 1. Fetch raw subtitles from all active native and imported connectors in parallel.
+ * 2. Strictly normalize `lang` to ISO 639-2. Discard unmapped/invalid languages with warning log.
+ * 3. Whitelist filter on normalized ISO 639-2 codes.
+ * 4. Provider prioritization and deduplication.
+ * 5. Return clean response to player with original provider id, normalized lang, and direct url.
  */
 export async function getAggregatedSubtitles(
   query: SubtitleQuery,
@@ -125,9 +85,8 @@ export async function getAggregatedSubtitles(
   }
 
   // =========================================================================
-  // STEP 2: ANTES DE QUALQUER OUTRA COISA: Normalizar o campo lang para ISO 639-2
-  // Descartar qualquer resultado com código não resolvido (a menos que allowUnknownLanguages = true)
-  // NUNCA deixar lang bruto seguir adiante no pipeline!
+  // STEP 2: Normalizar o campo lang para ISO 639-2
+  // Descartar qualquer resultado com código não resolvido para evitar categoria "Desconhecido".
   // =========================================================================
   const normalizedItems: RawSubtitleItem[] = [];
 
@@ -147,7 +106,7 @@ export async function getAggregatedSubtitles(
       continue;
     }
 
-    // Overwrite with normalized ISO 639-2 code so raw lang NEVER leaks
+    // Overwrite with normalized ISO 639-2 code so raw lang never leaks to player
     sub.lang = validation.normalizedLang;
     normalizedItems.push(sub);
   }
@@ -157,7 +116,7 @@ export async function getAggregatedSubtitles(
   });
 
   // =========================================================================
-  // STEP 3: Aplicar filtro de idiomas permitidos (whitelist) sobre o lang já normalizado
+  // STEP 3: Aplicar filtro de idiomas permitidos (whitelist) sobre o lang normalizado
   // =========================================================================
   const whitelistedItems = normalizedItems.filter(item =>
     isLanguageWhitelisted(item.lang, config.languages)
@@ -174,55 +133,28 @@ export async function getAggregatedSubtitles(
 
   if (config.deduplication) {
     const beforeCount = orderedItems.length;
-    orderedItems = deduplicateSubtitles(orderedItems);
+    orderedItems = deduplicateSubtitles(orderedItems, 0.85, config.deduplicationStrategy || 'both');
     Logger.info(`Deduplication: ${beforeCount} -> ${orderedItems.length} subtitles`);
   }
 
   // =========================================================================
-  // STEP 5, 6, 7: Personalização de Nome/Rótulo, ID Curto & URL de Proxy Interno
-  // SÓ DEPOIS de todas as etapas anteriores!
+  // STEP 5: Resposta final limpa ao player Stremio/Nuvio
+  // Retorna id, lang (normalizado) e url originais sem camada de reescrita de rótulo.
   // =========================================================================
-  const formattedSubtitles: StremioSubtitle[] = orderedItems.map((item, index) => {
-    // 5. Apply custom template to generate label and filename
-    const ctx = buildTemplateContext(item, item.lang);
-    const customLabel = renderTemplate(config.namingTemplate, ctx);
-    const ext = item.format || (item.url.toLowerCase().endsWith('.vtt') ? 'vtt' : 'srt');
-    const filename = `${customLabel}.${ext}`.replace(/[\\/:*?"<>|]/g, '_');
-
-    // 6. Generate clean short slug ID based on provider, lang, and index
-    // NEVER reuse the original connector ID or URL
-    const providerSlug = (item.providerName || item.provider || 'sub')
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, '')
-      .substring(0, 15);
-    const cleanId = `${providerSlug}-${item.lang.toLowerCase()}-${index + 1}`;
-
-    // Assert that cleanId and customLabel do not leak URLs or oversized base64 tokens
-    assertCleanSubtitleItem(cleanId, customLabel);
-
-    // 7. Subtitle file URL pointing to internal proxy endpoint (/download/:idCurto.srt)
-    // Upstream URL is registered and stored exclusively in the proxy store
-    const shortId = registerProxyDownload({
-      originalUrl: item.url,
-      filename,
-      provider: item.provider,
-      format: ext,
-      apiKey: config.providers[item.provider]?.apiKey,
-      fileId: (item.rawMetadata as Record<string, unknown> | undefined)?.fileId as string | number | undefined
-    });
-
-    const proxyUrl = `${baseUrl}/download/${shortId}.srt`;
+  const subtitles: StremioSubtitle[] = orderedItems.map(item => {
+    let finalUrl = item.url;
+    if (finalUrl.startsWith('/')) {
+      finalUrl = `${baseUrl}${finalUrl}`;
+    }
 
     return {
-      id: cleanId,
-      url: proxyUrl,
+      id: item.id,
       lang: item.lang,
-      file: filename,
-      title: customLabel
+      url: finalUrl
     };
   });
 
   return {
-    subtitles: formattedSubtitles
+    subtitles
   };
 }

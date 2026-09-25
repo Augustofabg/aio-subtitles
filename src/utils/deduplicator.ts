@@ -35,39 +35,45 @@ function similarity(tokensA: Set<string>, tokensB: Set<string>): number {
  */
 export function deduplicateSubtitles(
   items: RawSubtitleItem[],
-  similarityThreshold = 0.85
+  similarityThreshold = 0.85,
+  strategy: 'both' | 'hash' | 'fuzzy' = 'both'
 ): RawSubtitleItem[] {
   const result: RawSubtitleItem[] = [];
   const seenHashes = new Set<string>();
   const seenUrls = new Set<string>();
 
+  const checkHash = strategy === 'both' || strategy === 'hash';
+  const checkFuzzy = strategy === 'both' || strategy === 'fuzzy';
+
   for (const item of items) {
-    // 1. Direct URL deduplication
-    if (item.url && seenUrls.has(item.url)) {
-      continue;
+    // 1. Direct URL and file hash deduplication
+    if (checkHash) {
+      if (item.url && seenUrls.has(item.url)) {
+        continue;
+      }
+      if (item.fileHash && seenHashes.has(item.fileHash)) {
+        continue;
+      }
     }
 
-    // 2. Hash deduplication
-    if (item.fileHash && seenHashes.has(item.fileHash)) {
-      continue;
-    }
-
-    // 3. Fuzzy release name similarity deduplication
+    // 2. Fuzzy release name similarity deduplication
     let isDuplicate = false;
-    const itemTokens = item.release ? tokenize(item.release) : new Set<string>();
+    if (checkFuzzy) {
+      const itemTokens = item.release ? tokenize(item.release) : new Set<string>();
 
-    if (itemTokens.size > 0) {
-      for (const existing of result) {
-        // Must be same language and hearing-impaired status to be a duplicate
-        if (existing.lang !== item.lang) continue;
-        if (Boolean(existing.hearingImpaired) !== Boolean(item.hearingImpaired)) continue;
+      if (itemTokens.size > 0) {
+        for (const existing of result) {
+          // Must be same language and hearing-impaired status to be a duplicate
+          if (existing.lang !== item.lang) continue;
+          if (Boolean(existing.hearingImpaired) !== Boolean(item.hearingImpaired)) continue;
 
-        if (existing.release) {
-          const existingTokens = tokenize(existing.release);
-          const score = similarity(itemTokens, existingTokens);
-          if (score >= similarityThreshold) {
-            isDuplicate = true;
-            break;
+          if (existing.release) {
+            const existingTokens = tokenize(existing.release);
+            const score = similarity(itemTokens, existingTokens);
+            if (score >= similarityThreshold) {
+              isDuplicate = true;
+              break;
+            }
           }
         }
       }

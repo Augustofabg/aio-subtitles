@@ -10,7 +10,6 @@ import { parseSubtitleQuery, getAggregatedSubtitles } from './core/aggregator';
 import { handleSubtitleProxy, handleOpenSubtitlesRestDownload, handleShortIdDownload } from './proxy/subtitleProxy';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
 import { getAllProviders } from './providers';
-import { generatePreviewExamples } from './utils/template';
 import { globalSubtitleCache } from './utils/cache';
 import { Logger } from './utils/logger';
 
@@ -42,14 +41,39 @@ export function createServer(): express.Application {
     return `${protocol}://${host}`;
   };
 
-  // Helper to construct Stremio manifest
+  // Helper to construct Stremio manifest dynamically from user config
   const buildManifest = (configEncoded?: string): StremioManifest => {
+    let name = 'AIO Subtitles';
+    let description = 'Agregador e organizador de legendas dedicado para Stremio e Nuvio.';
+    let logo = 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png';
+    let version = '1.0.0';
+
+    if (configEncoded) {
+      try {
+        const userCfg = decodeUserConfig(configEncoded);
+        if (userCfg.instanceName && userCfg.instanceName.trim() !== '') {
+          name = userCfg.instanceName.trim();
+        }
+        if (userCfg.instanceDesc && userCfg.instanceDesc.trim() !== '') {
+          description = userCfg.instanceDesc.trim();
+        }
+        if (userCfg.instanceLogo && userCfg.instanceLogo.trim() !== '') {
+          logo = userCfg.instanceLogo.trim();
+        }
+        if (userCfg.instanceVersion && userCfg.instanceVersion.trim() !== '') {
+          version = userCfg.instanceVersion.trim().replace(/^v/i, '');
+        }
+      } catch {
+        // Fallback to default branding
+      }
+    }
+
     return {
       id: 'org.aiosubtitles.addon',
-      version: '1.0.0',
-      name: 'AIO Subtitles',
-      description: 'Unified subtitle aggregator with multi-provider search, language normalization, remapping, and custom formatting.',
-      logo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
+      version,
+      name,
+      description,
+      logo,
       background: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?auto=format&fit=crop&w=1920&q=80',
       resources: [
         {
@@ -161,6 +185,7 @@ export function createServer(): express.Application {
         id: manifest.id || `custom-${Math.random().toString(36).substring(2, 9)}`,
         name: addonName,
         description: manifest.description || '',
+        logo: manifest.logo || '',
         manifestUrl: inputUrl
       });
     } catch (err: unknown) {
@@ -172,11 +197,37 @@ export function createServer(): express.Application {
     }
   });
 
-  // API: Live preview rendering
-  app.post('/api/preview', (req: Request, res: Response) => {
-    const template = req.body.template || DEFAULT_USER_CONFIG.namingTemplate;
-    const previews = generatePreviewExamples(template);
-    res.json({ previews });
+  // API: Test OpenSubtitles REST connection with user's API key
+  app.post('/api/test-connection/opensubtitles', async (req: Request, res: Response) => {
+    const apiKey = (req.body?.apiKey as string || '').trim();
+    if (!apiKey) {
+      res.status(400).json({ success: false, error: 'Chave de API não informada.' });
+      return;
+    }
+
+    try {
+      const axios = require('axios');
+      const response = await axios.get('https://api.opensubtitles.com/api/v1/infos/user', {
+        headers: {
+          'Api-Key': apiKey,
+          'User-Agent': 'AIOSubtitles/1.0.0'
+        },
+        timeout: 7000
+      });
+
+      const username = response.data?.data?.user?.username || response.data?.user?.username || 'Conectado';
+      res.json({
+        success: true,
+        message: `Chave de API válida! Usuário: ${username}`
+      });
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status: number }; message: string };
+      if (axiosErr.response?.status === 401 || axiosErr.response?.status === 403) {
+        res.status(400).json({ success: false, error: 'Chave de API inválida ou sem permissão no OpenSubtitles.com.' });
+      } else {
+        res.status(400).json({ success: false, error: `Não foi possível validar a chave: ${axiosErr.message || 'Erro de conexão'}` });
+      }
+    }
   });
 
   // Configuration Page: root redirect or /configure

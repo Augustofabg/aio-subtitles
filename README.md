@@ -5,258 +5,127 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
-**AIO Subtitles** é um addon de alto desempenho e dedicado EXCLUSIVAMENTE à **agregação, filtragem, normalização e personalização de legendas** para [Stremio](https://stremio.com) e [Nuvio](https://nuvioapp.com).
+**AIO Subtitles** é um addon de alto desempenho para [Stremio](https://stremio.com) e [Nuvio](https://nuvioapp.com) focado EXCLUSIVAMENTE em **agregação, filtragem e organização de legendas**.
 
-Ele foi projetado especificamente para superar as deficiências conhecidas no manuseio de legendas dos addons tradicionais (como o AIOStreams), oferecendo controle cirúrgico sobre idiomas, unificação de abas no player e templates visuais ricos.
+A interface segue de perto o padrão visual e de navegação consagrado pelo **AIOStreams** (tema escuro, sidebar fixa de ícones à esquerda, barra superior com indicador de *"Unsaved changes"*, botões de *Restore*, *Discard*, alternância de rascunhos, botões *Previous* / *Next* de wizard, e cards de serviços/addons com toggle, editar e excluir).
 
----
-
-## 🚀 Problemas Resolvidos & Funcionalidades
-
-### 1. 🛡️ Filtragem Rígida por Whitelist (Adeus às 40 línguas do OpenSubtitles v3)
-* **O Problema:** O endpoint oficial do OpenSubtitles v3 não aceita parâmetros de idioma na URL e devolve todas as legendas existentes em dezenas de línguas indesejadas (russo, árabe, polonês, etc.).
-* **Nossa Solução:** O AIO Subtitles recebe as legendas brutas de todas as fontes e aplica um filtro rigoroso de **Whitelist** definido pelo usuário (ex: apenas `pob`, `por`, `eng`), descartando imediatamente qualquer idioma que não pertença à sua lista.
-
-### 2. 📑 Remapeamento de Códigos de Idioma (Fim das Abas Duplicadas no Player)
-* **O Problema:** No player do Stremio, as legendas são agrupadas em abas com base estrita no código ISO (`lang`). Quando uma fonte envia `por` e outra envia `pob` (ou `pt-BR`), o player cria duas abas de Português separadas.
-* **Nossa Solução:** Motor visual de **Remapeamento de Código** (De &rarr; Para). Regras configuráveis como `por -> pob`, `pt-br -> pob`, `pt -> pob` são aplicadas **antes** de responder ao Stremio, garantindo que todas as legendas em português caiam na **mesma aba**!
-
-### 3. 🏷️ Personalização de Rótulo / Nome de Arquivo (Template Engine)
-* **O Problema:** O protocolo de legendas do Stremio não possui campo de descrição em duas linhas (ao contrário das streams de vídeo).
-* **Nossa Solução:** Template configurável com interpolação de variáveis:
-  * `{provider}`: Nome do provedor (ex: `OpenSubtitles`, `SubDL`, `Subsource`)
-  * `{lang_flag}`: Bandeira emoji do idioma (ex: 🇧🇷, 🇵🇹, 🇺🇸, 🇪🇸)
-  * `{lang}`: Código do idioma (ex: `POB`, `ENG`)
-  * `{release}`: Nome da release ou equipe (ex: `1080p.BluRay.x264-SPARKS`)
-  * `{hi}`: Indicador de acessibilidade (`[CC]` para Hearing Impaired / Closed Caption)
-  * `{format}`: Formato do arquivo (`SRT`, `VTT`)
-  * `{fps}`: Taxa de quadros quando disponível (ex: `23.976fps`)
-  * *Template Padrão:* `[{provider}] {lang_flag} {release} {hi}`
-
-### 4. 🔀 Subtitle Proxy com Injeção de Nome de Arquivo & Correção de UTF-8
-* Quando ativado, as URLs de legenda são roteadas pelo endpoint `/proxy/subtitle/:data`.
-* **Benefícios:**
-  1. Injeta o cabeçalho `Content-Disposition: inline; filename="[OpenSubtitles] 🇧🇷 Release [CC].srt"` (para players móveis e externos que exibem o nome do arquivo).
-  2. Corrige automaticamente a codificação de caracteres Windows-1252 / ISO-8859-1 para **UTF-8**, eliminando símbolos corrompidos como `` em acentos (`ç`, `ã`, `é`).
-  3. Descompacta arquivos ZIP automaticamente (comum no SubDL e Subsource), servindo o arquivo `.srt` direto ao player.
-  4. Adiciona cabeçalhos CORS completos (`Access-Control-Allow-Origin: *`).
-
-### 5. ⚡ Múltiplos Conectores Paralelos Plugáveis
-O addon executa todas as fontes em paralelo com `Promise.allSettled` e timeout individual configurável (2000 a 15000ms):
-* **OpenSubtitles REST API (v1):** Utiliza chave de API pessoal, aceita filtro nativo por idioma e retorna metadados ricos (downloads, FPS, rating).
-* **SubDL:** Catálogo abrangente com suporte a filmes e séries de TV.
-* **OpenSubtitles v3:** Catálogo oficial integrado via Stremio, filtrado a posteriori.
-* **Subsource:** Repositório colaborativo de legendas atualizadas.
-* **Addic7ed:** Especializado em episódios e temporadas de séries de TV.
-* **Interface `SubtitleProvider` Extensível:** Permite plugar novas fontes em 1 único arquivo TypeScript.
-
-### 6. 🌐 Suporte a QUALQUER Addon via Manifest URL (Importação Livre)
-Diferente de agregadores fechados que só permitem fontes pré-integradas, o **AIO Subtitles** permite colar o link de manifest (`https://.../manifest.json` ou `stremio://...`) de **qualquer addon de legendas do ecossistema Stremio** (como Titlovi, Legendas.net, etc.):
-* **Validação em tempo real:** O backend valida se o manifest declara o recurso `subtitles` e extrai o nome oficial do addon.
-* **Mesmo Pipeline:** O addon externo entra no mesmo pipeline dos provedores nativos: timeout configurável, whitelist de idiomas, remapeamento de código (`por -> pob`), deduplicação e rótulos personalizados.
-* **Sem limite:** Adicione quantos addons externos desejar e ordene sua prioridade na interface.
-
-### 6.1 🛡️ Prevenção Rigorosa do Bug do "Desconhecido"
-Identificamos e eliminamos a causa raiz de um bug comum em outros agregadores, onde legendas de addons importados aparecem todas com o rótulo genérico *"Desconhecido"*:
-* **Propagação Obrigatória de `providerName`:** Todo conector (nativo ou importado) associa um `providerName` fixo e não-vazio derivado do manifest oficial a cada legenda normalizada.
-* **Fallback Inteligente:** O formatador de template `{provider}` nunca cai em "Desconhecido", priorizando: `providerName` &rarr; `provider` &rarr; `manifest.name` &rarr; `AIOSubtitles`.
-* **Teste Automatizado Obrigatório:** Inclui suite de testes (`npm test`) que valida que nenhum conector configurado ou mock retorna `null`, vazio ou a string literal "Desconhecido".
-* **Confirmação Visual na UI:** A interface de configuração exibe a tag `Lido do Manifest: [Nome]` ao lado de cada addon importado para validação imediata do usuário.
-
-### 7. 🧹 Deduplicação Inteligente & Priorização
-* **Deduplicação:** Detecta legendas repetidas do mesmo release usando análise fuzzy (>85% de similaridade) e mesmo idioma/HI.
-* **Priorização:** Arraste ou reordene seus provedores favoritos no topo da lista.
-
-### 8. 🔒 Zero Dependência de Banco de Dados
-* Configuração do usuário inteiramente codificada em **Base64URL** e embutida na própria URL do manifest:
-  `https://seu-dominio.com/:config/manifest.json`
-* A mesma URL pode ser aberta a qualquer momento em `/:config/configure` para editar suas preferências!
+> [!NOTE]
+> **Arquitetura Limpa e Estabilidade**: O addon devolve as legendas ao player diretamente com o `id` e `url` originais do provedor e o `lang` estritamente normalizado para o padrão ISO 639-2. Não há camadas frágeis de templates ou proxies de renomeação, garantindo total compatibilidade com todos os players (Stremio Desktop, Web, Android, Android TV e Nuvio) sem vazamento de base64 ou abas "Desconhecido".
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🚀 Funcionalidades Principais
 
-* **Runtime:** Node.js (v20+ / v22+ / v24+)
+### 1. 🌐 Interface no Padrão AIOStreams
+* **Sidebar Fixa:** Navegação lateral com ícones e tooltips para **Home**, **Services**, **Addons**, **Filters** e **Settings**.
+* **Topbar de Ação Rápida:**
+  * Indicador dinâmico de alterações: pill verde *"All changes saved"* ou pill pulsante âmbar *"Unsaved changes"*.
+  * Botões **Restore** (reverte alterações para o último estado salvo) e **Discard** (redefine para as configurações padrão).
+  * Toggle *"Don't keep drafts on this browser"* (armazena preferência no navegador).
+  * Navegação de wizard com botões **Previous** e **Next**.
+  * Botão de destaque **Save & Install** (com ícone de disquete).
+  * Botões sociais **Donate** e **Sign Out**.
+
+### 2. 🏠 Home (Branding da Instância)
+* **Nome do Addon Editável:** Altere o nome exibido (ex.: `AIOSubtitles`) com edição inline via ícone de lápis.
+* **Logo / Ícone Customizado:** URL de logo editável em tempo real.
+* **Descrição Curta:** Descrição configurável inline (ex.: `Agregador e organizador de legendas`).
+* **Versão:** Exibição da versão da instância (ex.: `v1.0.0`).
+* **Your configuration:** Seção com estatísticas ativas e botões de ação rápida:
+  * **Continue setup:** Avança para a página de Services no wizard.
+  * **Save & Install:** Gera a manifest URL final e abre o modal de instalação.
+
+### 3. ⚡ Services (Fontes Nativas de Legenda com API Keys)
+Cada conector nativo possui seu próprio card com nome, badge de status e toggle on/off:
+* **OpenSubtitles REST:** Badge `Requer API Key`. API oficial v1 com suporte a busca nativa por idioma e metadados detalhados. Inclui campo de input para a chave do usuário e botão **"Testar conexão"** com ping de validação em tempo real.
+* **SubDL:** Badge `Público`. Banco de dados massivo com legendas em múltiplos idiomas e releases. Campo opcional para API key pessoal para limites maiores de requisições.
+* **Subsource:** Badge `Público`. Comunidade colaborativa com legendas revisadas para filmes e séries.
+* **Addic7ed:** Badge `Público`. Especializado em episódios e lançamentos rápidos de séries de TV.
+
+### 4. 🧩 Addons (Importação Livre por Manifest URL & Marketplace)
+* **Aba Installed:**
+  * Campo de importação rápida: Cole a URL (`https://.../manifest.json` ou `stremio://...`) de qualquer addon de legendas. O backend valida a presença do recurso `subtitles` e lê automaticamente o `name`, `id` e `logo` do manifest.
+  * Proteção de layout: A URL completa é truncada com reticências (`text-overflow: ellipsis`) e conta com botão dedicado de **"Copiar URL"**.
+  * Lista agrupada na seção **LEGENDAS**, onde cada addon possui ícone, nome, toggle on/off, botão de configurações (engrenagem), editar (lápis) e excluir (lixeira).
+  * Seletor de rodapé **Addon Fetching Strategy** (padrão: *Default* = busca paralela de todos os addons antes de retornar resultados).
+* **Aba Marketplace:**
+  * Catálogo integrado com 1-clique para adicionar os addons de legenda mais populares do ecossistema: OpenSubtitles v3, LegendasDivx.pt, Podnapisi, Titlovi.
+
+### 5. 🎛️ Filters (Idiomas, Remapeamento, Deduplicação e Prioridade)
+* **Idiomas Permitidos (Whitelist):** Seletor multi-select com busca e bandeiras emoji (ex: 🇧🇷 `pob`, 🇵🇹 `por`, 🇺🇸 `eng`). Descarta legendas em idiomas indesejados de todos os conectores.
+* **Remapeamento de Código de Idioma:** Tabela visual "De &rarr; Para" editável (regras padrão: `por -> pob`, `pt-br -> pob`, `pt -> pob`, `pt-pt -> por`). Unifica legendas com códigos diferentes na **mesma aba/categoria do player**.
+* **Prevenção do Idioma "Desconhecido":** Canonicalização estrita para ISO 639-2 antes de responder ao Stremio. Qualquer código inválido é descartado com log estruturado, impedindo que o player crie abas quebradas.
+* **Deduplicação Inteligente:** Toggle on/off com seletor de estratégia:
+  * *Ambos (Hash de Conteúdo + Similaridade de Release Fuzzy >85%)*
+  * *Apenas Hash de Conteúdo e URL*
+  * *Apenas Similaridade de Release (Fuzzy)*
+* **Prioridade de Provedores e Addons:** Lista reordenável com botões de subir/descer prioridade, determinando a ordem de exibição final no player.
+* **Timeout por Conector:** Slider configurável de 2000ms a 15000ms (padrão 6000ms) com display em tempo real.
+
+### 6. 💾 Settings & Instalação
+* Geração instantânea da URL do manifest com a configuração codificada em **Base64URL**:
+  `https://SEU_DOMINIO/:config/manifest.json`
+* Botão **"Instalar no Stremio"** com deep link `stremio://`.
+* Modal **"Instalar no Nuvio (QR Code)"** gerando código QR legível na tela.
+* Slider para ajuste do tempo de cache em memória (5 a 120 minutos, padrão 30 min).
+* Ferramentas de **Backup e Restauração em JSON** para salvar ou importar suas configurações facilmente.
+
+---
+
+## 🛠️ Tecnologias
+
+* **Runtime:** Node.js 20+ / 22+ / 24+
 * **Linguagem:** TypeScript
 * **Servidor HTTP:** Express + CORS + Express Rate Limit
-* **Cache em Memória:** `lru-cache` com TTL configurável (default 30 min)
-* **Processamento de Legendas:** `iconv-lite` (UTF-8 normalizer) + `adm-zip` (auto-unzip)
-* **Frontend SPA:** HTML5 + Vanilla CSS (Glassmorphism & Dark Mode) + QRCode.js
+* **Frontend SPA:** HTML5 + CSS3 (Design System escuro estilo AIOStreams) + JavaScript Moderno + QRCode.js
+* **Cache:** `lru-cache` em memória
 
 ---
 
-## 📁 Estrutura do Projeto
+## 🚀 Como Executar
 
-```
-/
-├── src/
-│   ├── config/
-│   │   ├── env.ts              # Carregamento de variáveis de ambiente
-│   │   └── userConfig.ts       # Parser, defaults e codec Base64URL
-│   ├── types/
-│   │   ├── stremio.ts          # Interfaces do protocolo Stremio
-│   │   ├── config.ts           # Schema de configurações do usuário
-│   │   └── provider.ts         # Interfaces de SubtitleProvider e itens de legenda
-│   ├── utils/
-│   │   ├── languages.ts        # Base de dados ISO 639-1/2/3, nomes e bandeiras
-│   │   ├── normalizer.ts       # Validador de whitelist e remapeador de códigos
-│   │   ├── template.ts         # Motor de interpolação de rótulo e preview
-│   │   ├── deduplicator.ts     # Deduplicação fuzzy e ordenação por prioridade
-│   │   ├── cache.ts            # LRU Cache com chaveamento composto
-│   │   └── logger.ts           # Logs estruturados com métricas por provedor
-│   ├── providers/
-│   │   ├── base.ts             # Classe abstrata com controle de timeout e métricas
-│   │   ├── openSubtitlesRest.ts# Provedor REST v1 com filtro nativo
-│   │   ├── subdl.ts            # Provedor SubDL com suporte a filmes e séries
-│   │   ├── openSubtitlesV3.ts  # Provedor OpenSubtitles v3 com filtro pós-resposta
-│   │   ├── subsource.ts        # Provedor Subsource
-│   │   ├── addic7ed.ts         # Provedor Addic7ed para séries
-│   │   └── index.ts            # Registro e executor concorrente (allSettled)
-│   ├── core/
-│   │   └── aggregator.ts       # Pipeline mestre de agregação
-│   ├── proxy/
-│   │   └── subtitleProxy.ts    # Streaming, extração de ZIP e injeção de headers
-│   ├── web/
-│   │   └── public/             # SPA de Configuração
-│   │       ├── index.html      # Interface responsiva
-│   │       ├── style.css       # Estilos modernos em Dark Mode e Glassmorphism
-│   │       └── app.js          # Lógica reativa, live preview e QR code
-│   ├── server.ts               # Servidor Express e roteamento dos endpoints
-│   └── index.ts                # Ponto de entrada
-├── scripts/
-│   └── copy-assets.js          # Script cross-platform para empacotar a UI no build
-├── Dockerfile                  # Multi-stage build para produção
-├── docker-compose.yml          # Orquestração de contêiner
-├── .env.example                # Modelo de variáveis de ambiente
-├── package.json
-└── tsconfig.json
-```
+### 1. Execução Local
 
----
-
-## 💻 Instalação & Execução Local
-
-### Pré-requisitos
-* Node.js v20+ ou superior
-* npm (ou pnpm / yarn)
-
-### 1. Clonar e Instalar Dependências
 ```bash
-git clone https://github.com/Augustofabg/Mihon_Fork_Test.git aio-subtitles
-cd aio-subtitles
+# Instalar dependências
 npm install
-```
 
-### 2. Configurar Variáveis de Ambiente (Opcional)
-Copie o arquivo de exemplo:
-```bash
-cp .env.example .env
-```
-Campos disponíveis:
-* `PORT`: Porta do servidor (padrão: `7000`)
-* `HOST`: Host de bind (padrão: `0.0.0.0`)
-* `BASE_URL`: URL pública caso use domínio reverso (ex: `https://subtitles.seudominio.com`)
-* `OPENSUBTITLES_API_KEY`: Chave global de fallback para o OpenSubtitles REST
-* `SUBDL_API_KEY`: Chave global de fallback para o SubDL
-
-### 3. Modo de Desenvolvimento
-Inicie com recarregamento a quente via `tsx`:
-```bash
+# Rodar em modo de desenvolvimento com hot-reload
 npm run dev
-```
 
-### 4. Compilar e Rodar em Produção
-```bash
+# Rodar a suíte de testes automatizados
+npm test
+
+# Compilar para produção
 npm run build
+
+# Iniciar servidor compilado
 npm start
 ```
-O servidor estará disponível em:
+
+Acesse no navegador:
 * **Interface de Configuração:** `http://localhost:7000/configure`
 * **Manifest Padrão:** `http://localhost:7000/manifest.json`
-* **Healthcheck:** `http://localhost:7000/health`
+* **Health Check:** `http://localhost:7000/health`
 
----
+### 2. Execução com Docker
 
-## 🐳 Deploy com Docker & Docker Compose
-
-### Usando Docker Compose (Recomendado)
 ```bash
-docker compose up -d --build
-```
-Para ver os logs estruturados:
-```bash
-docker compose logs -f aio-subtitles
-```
-
-### Usando Docker CLI Manual
-```bash
-# Construir a imagem
+# Construir imagem Docker
 docker build -t aio-subtitles .
 
-# Executar o container
-docker run -d \
-  --name aio-subtitles \
-  -p 7000:7000 \
-  --restart unless-stopped \
-  aio-subtitles
+# Executar contêiner na porta 7000
+docker run -d -p 7000:7000 --name aio-subtitles aio-subtitles
 ```
 
----
+### 3. Execução com Docker Compose
 
-## 🌐 Deploy em Nuvem (Render, Railway, Fly.io, HuggingFace)
-
-Como o addon utiliza **configuração em Base64URL embutida no path**, ele é **100% stateless** e não requer banco de dados!
-
-1. Conecte o repositório no seu provedor de preferência.
-2. Defina o comando de build: `npm ci && npm run build`
-3. Defina o comando de início: `npm start`
-4. Configure a variável `PORT` (fornecida automaticamente na maioria dos PaaS) e `BASE_URL` para o seu domínio público com HTTPS.
-
----
-
-## 🖥️ Como Utilizar a Interface `/configure`
-
-Acesse `http://localhost:7000/configure` (ou seu domínio) no navegador:
-
-1. **Fontes de Legenda Nativas:**
-   * Ative ou desative os conectores desejados (OpenSubtitles v3, REST, SubDL, Subsource, Addic7ed).
-   * Se possuir conta no OpenSubtitles.com, insira sua `API Key` (opcional).
-2. **Addons Externos (Importação Livre por URL):**
-   * Cole a URL do `manifest.json` (ou `stremio://`) de qualquer addon de legendas.
-   * O sistema valida se o addon fornece legendas, exibe o nome oficial verificado do manifest e o integra ao pipeline.
-3. **Filtragem de Idiomas (Whitelist):**
-   * Selecione seus idiomas permitidos (ex: Português do Brasil e Inglês).
-   * Utilize os atalhos rápidos (`🇧🇷 PT-BR + 🇺🇸 EN`). Qualquer legenda fora desses idiomas será sumariamente ignorada.
-4. **Remapeamento de Códigos:**
-   * Configure regras como `por -> pob`, `pt-br -> pob`. O addon converterá qualquer código antes de entregar ao Stremio, unificando a aba de exibição.
-5. **Template de Rótulo:**
-   * Personalize com variáveis como `[{provider}] {lang_flag} {release} {hi}`.
-   * Visualize a simulação instantânea no mockup do player Stremio ao lado (o `{provider}` nunca fica como "Desconhecido").
-6. **Proxy de Legendas:**
-   * Deixe marcado para injeção de nome no `Content-Disposition`, descompactação de ZIP e correção UTF-8.
-7. **Prioridade e Timeout:**
-   * Reordene a prioridade dos provedores e addons importados clicando nas setas.
-   * Ajuste o timeout por provedor (padrão: 6000ms).
-8. **Instalação:**
-   * Clique em **Gerar & Atualizar Manifest**.
-   * Copie a URL gerada, ou clique em **Instalar no Stremio** (aciona o protocolo `stremio://`), ou escaneie o **QR Code** no aplicativo Nuvio / Stremio Mobile!
-
----
-
-## 📡 Endpoints da API Stremio
-
-| Método | Rota | Descrição |
-| :--- | :--- | :--- |
-| `GET` | `/manifest.json` | Manifest padrão do addon |
-| `GET` | `/:config/manifest.json` | Manifest dinâmico com as preferências do usuário |
-| `GET` | `/:config/subtitles/:type/:id.json` | Consulta de legendas (filmes ou séries sem episódio) |
-| `GET` | `/:config/subtitles/:type/:id/:extra.json` | Consulta de legendas completas (séries `tt0903747:1:1`, etc.) |
-| `GET` | `/configure` | SPA visual de configuração |
-| `GET` | `/:config/configure` | Abre a SPA já preenchida com a configuração existente |
-| `GET` | `/proxy/subtitle/:data` | Proxy com UTF-8 fix, auto-unzip e `Content-Disposition` |
-| `GET` | `/health` | Checagem de integridade, uptime e tamanho do cache |
+```bash
+docker compose up -d
+```
 
 ---
 
 ## 📄 Licença
+
 Distribuído sob a licença [MIT](LICENSE).

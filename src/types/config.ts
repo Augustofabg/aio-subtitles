@@ -11,19 +11,32 @@ export interface CustomAddonConfig {
   name: string;
   manifestUrl: string;
   enabled: boolean;
+  logo?: string;
+  description?: string;
 }
 
 export interface UserConfig {
+  // Instance branding (Home page)
+  instanceName?: string;
+  instanceDesc?: string;
+  instanceLogo?: string;
+  instanceVersion?: string;
+
+  // Services & Addons
   providers: Record<string, ProviderConfigItem>;
   customAddons: CustomAddonConfig[];
+  addonFetchingStrategy?: 'default' | 'fastest';
+
+  // Filters & Ordering
   providerPriority: string[];
   languages: string[];
   allowUnknownLanguages: boolean;
   languageRemap: Record<string, string>;
-  namingTemplate: string;
   providerTimeoutMs: number;
   deduplication: boolean;
-  proxySubtitles: boolean;
+  deduplicationStrategy?: 'both' | 'hash' | 'fuzzy';
+
+  // System & Cache
   cacheTtlMinutes: number;
 }
 

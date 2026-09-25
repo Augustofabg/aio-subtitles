@@ -1,6 +1,10 @@
 import { UserConfig, PartialUserConfig } from '../types/config';
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
+  instanceName: 'AIOSubtitles',
+  instanceDesc: 'Agregador e organizador de legendas',
+  instanceLogo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
+  instanceVersion: 'v1.0.0',
   providers: {
     'opensubtitles-v3': { enabled: true },
     'opensubtitles-rest': { enabled: true, apiKey: '' },
@@ -9,6 +13,7 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     'addic7ed': { enabled: true }
   },
   customAddons: [],
+  addonFetchingStrategy: 'default',
   providerPriority: [
     'opensubtitles-rest',
     'subdl',
@@ -24,10 +29,9 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     'pt': 'pob',
     'pt-pt': 'por'
   },
-  namingTemplate: '[{provider}] {lang_flag} {release} {hi}',
   providerTimeoutMs: 6000,
   deduplication: true,
-  proxySubtitles: true,
+  deduplicationStrategy: 'both',
   cacheTtlMinutes: 30
 };
 
@@ -89,19 +93,34 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     ? ((partial as unknown as { customAddons: unknown[] }).customAddons
         .filter(a => a && typeof a === 'object' && typeof (a as { manifestUrl?: unknown }).manifestUrl === 'string')
         .map(a => {
-          const item = a as { id?: string; name?: string; manifestUrl: string; enabled?: boolean };
+          const item = a as { id?: string; name?: string; manifestUrl: string; enabled?: boolean; logo?: string; description?: string };
           return {
             id: (item.id && String(item.id).trim()) || `addon-${Math.random().toString(36).substring(2, 8)}`,
             name: (item.name && String(item.name).trim()) || 'External Addon',
             manifestUrl: String(item.manifestUrl).trim(),
-            enabled: typeof item.enabled === 'boolean' ? item.enabled : true
+            enabled: typeof item.enabled === 'boolean' ? item.enabled : true,
+            logo: typeof item.logo === 'string' ? item.logo.trim() : undefined,
+            description: typeof item.description === 'string' ? item.description.trim() : undefined
           };
         }))
     : [];
 
   const result: UserConfig = {
+    instanceName: typeof partial.instanceName === 'string' && partial.instanceName.trim() !== ''
+      ? partial.instanceName.trim()
+      : DEFAULT_USER_CONFIG.instanceName,
+    instanceDesc: typeof partial.instanceDesc === 'string' && partial.instanceDesc.trim() !== ''
+      ? partial.instanceDesc.trim()
+      : DEFAULT_USER_CONFIG.instanceDesc,
+    instanceLogo: typeof partial.instanceLogo === 'string' && partial.instanceLogo.trim() !== ''
+      ? partial.instanceLogo.trim()
+      : DEFAULT_USER_CONFIG.instanceLogo,
+    instanceVersion: typeof partial.instanceVersion === 'string' && partial.instanceVersion.trim() !== ''
+      ? partial.instanceVersion.trim()
+      : DEFAULT_USER_CONFIG.instanceVersion,
     providers: { ...DEFAULT_USER_CONFIG.providers },
     customAddons,
+    addonFetchingStrategy: partial.addonFetchingStrategy === 'fastest' ? 'fastest' : 'default',
     providerPriority: Array.isArray(partial.providerPriority) && partial.providerPriority.length > 0
       ? partial.providerPriority
       : [...DEFAULT_USER_CONFIG.providerPriority],
@@ -114,18 +133,15 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     languageRemap: typeof partial.languageRemap === 'object' && partial.languageRemap !== null
       ? { ...partial.languageRemap }
       : { ...DEFAULT_USER_CONFIG.languageRemap },
-    namingTemplate: typeof partial.namingTemplate === 'string' && partial.namingTemplate.trim() !== ''
-      ? partial.namingTemplate
-      : DEFAULT_USER_CONFIG.namingTemplate,
     providerTimeoutMs: typeof partial.providerTimeoutMs === 'number'
       ? Math.max(2000, Math.min(15000, partial.providerTimeoutMs))
       : DEFAULT_USER_CONFIG.providerTimeoutMs,
     deduplication: typeof partial.deduplication === 'boolean'
       ? partial.deduplication
       : DEFAULT_USER_CONFIG.deduplication,
-    proxySubtitles: typeof partial.proxySubtitles === 'boolean'
-      ? partial.proxySubtitles
-      : DEFAULT_USER_CONFIG.proxySubtitles,
+    deduplicationStrategy: (partial.deduplicationStrategy === 'hash' || partial.deduplicationStrategy === 'fuzzy')
+      ? partial.deduplicationStrategy
+      : 'both',
     cacheTtlMinutes: typeof partial.cacheTtlMinutes === 'number'
       ? Math.max(1, Math.min(1440, partial.cacheTtlMinutes))
       : DEFAULT_USER_CONFIG.cacheTtlMinutes
