@@ -12,6 +12,8 @@ import { SUPPORTED_LANGUAGES } from './utils/languages';
 import { getAllProviders } from './providers';
 import { globalSubtitleCache } from './utils/cache';
 import { Logger } from './utils/logger';
+import { configStorage, isUuid } from './storage/configStore';
+import QRCode from 'qrcode';
 
 export function createServer(): express.Application {
   const app = express();
@@ -97,8 +99,8 @@ export function createServer(): express.Application {
   const publicDir = fs.existsSync(distPublic) ? distPublic : srcPublic;
   app.use(express.static(publicDir));
 
-  // Health Endpoint
-  app.get('/health', (_req: Request, res: Response) => {
+  // Health Endpoints
+  const healthHandler = (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
       addon: 'AIOSubtitles',
@@ -107,7 +109,11 @@ export function createServer(): express.Application {
       cacheSize: globalSubtitleCache.size,
       nodeVersion: process.version
     });
-  });
+  };
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
+
+  app.use('/:config', express.static(publicDir));
 
   // API: Supported languages list
   app.get('/api/languages', (_req: Request, res: Response) => {
@@ -180,13 +186,29 @@ export function createServer(): express.Application {
         ? String(manifest.name).trim()
         : (manifest.id ? String(manifest.id).trim() : 'External Subtitles Addon');
 
+      const declaredResources: string[] = Array.isArray(manifest.resources)
+        ? manifest.resources.map((r: unknown) => {
+            if (typeof r === 'string') return r;
+            if (typeof r === 'object' && r !== null && 'name' in r) {
+              return String((r as { name: string }).name);
+            }
+            return '';
+          }).filter(Boolean)
+        : ['subtitles'];
+
+      const isConfigurable = Boolean(manifest.behaviorHints?.configurable || manifest.configurationURL);
+      const configurationURL = manifest.configurationURL || (manifest.behaviorHints?.configurable ? inputUrl.replace(/\/manifest\.json$/i, '/configure') : '');
+
       res.json({
         valid: true,
         id: manifest.id || `custom-${Math.random().toString(36).substring(2, 9)}`,
         name: addonName,
         description: manifest.description || '',
         logo: manifest.logo || '',
-        manifestUrl: inputUrl
+        manifestUrl: inputUrl,
+        resources: declaredResources,
+        configurable: isConfigurable,
+        configurationURL: configurationURL
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -194,6 +216,29 @@ export function createServer(): express.Application {
         valid: false,
         error: `Não foi possível acessar o manifest em "${inputUrl}": ${msg}`
       });
+    }
+  });
+
+  // API: Render reliable QR code data URI for mobile / Nuvio install
+  app.get('/api/qrcode', async (req: Request, res: Response) => {
+    const text = String(req.query.text || '').trim();
+    if (!text) {
+      res.status(400).json({ error: 'Texto não fornecido para geração do QR Code.' });
+      return;
+    }
+    try {
+      const dataUrl = await QRCode.toDataURL(text, {
+        width: 220,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      });
+      res.json({ dataUrl });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      res.status(500).json({ error: `Erro ao gerar QR Code: ${msg}` });
     }
   });
 
@@ -278,6 +323,71 @@ export function createServer(): express.Application {
     }
 
     res.status(400).json({ valid: false, error: 'Serviço desconhecido' });
+  });
+
+  // API: Save configuration with UUID and Password
+  app.post('/api/config/save', (req: Request, res: Response) => {
+    const uuid = String(req.body?.uuid || '').trim();
+    const password = String(req.body?.password || '').trim();
+    const config = req.body?.config;
+
+    if (!uuid || !isUuid(uuid)) {
+      res.status(400).json({ success: false, error: 'UUID inválido.' });
+      return;
+    }
+
+    if (!password) {
+      res.status(400).json({ success: false, error: 'A senha é obrigatória para salvar a configuração.' });
+      return;
+    }
+
+    if (!config || typeof config !== 'object') {
+      res.status(400).json({ success: false, error: 'Configuração inválida.' });
+      return;
+    }
+
+    const saveResult = configStorage.saveConfig(uuid, password, config);
+    if (!saveResult.success) {
+      res.status(401).json({ success: false, error: saveResult.error || 'Não foi possível salvar a configuração.' });
+      return;
+    }
+
+    const baseUrl = getBaseUrl(req);
+    const manifestUrl = `${baseUrl}/${uuid}/manifest.json`;
+    const cleanHost = manifestUrl.replace(/^https?:\/\//i, '');
+    const stremioUrl = `stremio://${cleanHost}`;
+    const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`;
+
+    res.json({
+      success: true,
+      uuid,
+      manifestUrl,
+      stremioUrl,
+      stremioWebUrl
+    });
+  });
+
+  // API: Load existing configuration by UUID and Password
+  app.post('/api/config/load', (req: Request, res: Response) => {
+    const uuid = String(req.body?.uuid || '').trim();
+    const password = String(req.body?.password || '').trim();
+
+    if (!uuid || !isUuid(uuid) || !password) {
+      res.status(401).json({ success: false, error: 'UUID ou senha inválidos.' });
+      return;
+    }
+
+    const authResult = configStorage.authenticateAndGetConfig(uuid, password);
+    if (!authResult.success || !authResult.config) {
+      res.status(401).json({ success: false, error: 'UUID ou senha inválidos.' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      uuid,
+      config: authResult.config
+    });
   });
 
   // Configuration Page: root redirect or /configure

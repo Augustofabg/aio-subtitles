@@ -3,9 +3,10 @@ import { GenericStremioAddonProvider } from '../src/providers/genericStremioAddo
 import { validateAndNormalizeLanguage } from '../src/utils/normalizer';
 import { RawSubtitleItem } from '../src/types/provider';
 import { getAggregatedSubtitles } from '../src/core/aggregator';
-import { DEFAULT_USER_CONFIG } from '../src/config/userConfig';
+import { DEFAULT_USER_CONFIG, mergeWithDefaults, decodeUserConfig } from '../src/config/userConfig';
 import { UserConfig } from '../src/types/config';
 import { globalSubtitleCache } from '../src/utils/cache';
+import { configStorage, isUuid } from '../src/storage/configStore';
 
 console.log('🧪 Iniciando suíte de testes de validação do AIO Subtitles...\n');
 
@@ -194,12 +195,106 @@ async function runPipelineIntegrationTest(): Promise<void> {
     process.exit(1);
   }
   console.log(`  ✅ (c) url original preservada diretamente: "${finalSub.url}"`);
+}
+
+async function runAllTests(): Promise<void> {
+  await runPipelineIntegrationTest();
+
+  // 6. Test Services Default State (enabled: false) and Rules
+  console.log('\n--- Teste 6: Estado Inicial dos Serviços (Todos OFF) & Regras de API Key ---');
+  for (const pId of ['opensubtitles', 'subdl', 'subsource']) {
+    const pCfg = DEFAULT_USER_CONFIG.providers[pId];
+    if (!pCfg || pCfg.enabled !== false) {
+      console.error(`❌ Provedor ${pId} não começou desativado (enabled: false) no DEFAULT_USER_CONFIG!`);
+      process.exit(1);
+    }
+    console.log(`  ✅ Provedor ${pId} inicia com enabled: false`);
+  }
+
+  // Test mergeWithDefaults enforces enabled: false if apiKey is empty
+  const mergedNoKey = mergeWithDefaults({
+    providers: {
+      opensubtitles: { enabled: true, apiKey: '' },
+      subdl: { enabled: true, apiKey: '   ' }
+    }
+  });
+  if (mergedNoKey.providers.opensubtitles?.enabled !== false || mergedNoKey.providers.subdl?.enabled !== false) {
+    console.error(`❌ Falha: mergeWithDefaults permitiu serviço ON sem API Key válida!`);
+    process.exit(1);
+  }
+  console.log(`  ✅ mergeWithDefaults bloqueia ativação sem apiKey (força enabled: false)`);
+
+  const mergedWithKey = mergeWithDefaults({
+    providers: {
+      opensubtitles: { enabled: true, apiKey: 'valid-test-key-123' }
+    }
+  });
+  if (mergedWithKey.providers.opensubtitles?.enabled !== true) {
+    console.error(`❌ Falha: mergeWithDefaults não ativou serviço com apiKey informada!`);
+    process.exit(1);
+  }
+  console.log(`  ✅ mergeWithDefaults permite ativação quando apiKey é fornecida`);
+
+  // 7. Test UUID & Bcrypt Password Storage
+  console.log('\n--- Teste 7: Sistema de Persistência UUID + Senha (bcrypt) ---');
+  const testUuid = '51c97db4-03b7-4ec2-875d-e3a755c564b9';
+  const testPassword = 'SuperSecretPassword!@#123';
+
+  if (!isUuid(testUuid)) {
+    console.error(`❌ isUuid falhou ao reconhecer UUID válido: ${testUuid}`);
+    process.exit(1);
+  }
+
+  // Save config
+  const saveRes = configStorage.saveConfig(testUuid, testPassword, {
+    ...DEFAULT_USER_CONFIG,
+    instanceName: 'Test Instance With UUID'
+  });
+
+  if (!saveRes.success) {
+    console.error(`❌ configStorage.saveConfig falhou:`, saveRes.error);
+    process.exit(1);
+  }
+  console.log(`  ✅ Configuração salva com sucesso associada ao UUID ${testUuid}`);
+
+  // Verify getConfigByUuid resolves stored config
+  const retrievedByUuid = configStorage.getConfigByUuid(testUuid);
+  if (!retrievedByUuid || retrievedByUuid.instanceName !== 'Test Instance With UUID') {
+    console.error(`❌ configStorage.getConfigByUuid falhou ao carregar a configuração.`);
+    process.exit(1);
+  }
+  console.log(`  ✅ configStorage.getConfigByUuid recuperou com sucesso a configuração`);
+
+  // Verify decodeUserConfig(uuid) resolves stored config
+  const decodedFromUuid = decodeUserConfig(testUuid);
+  if (decodedFromUuid.instanceName !== 'Test Instance With UUID') {
+    console.error(`❌ decodeUserConfig(uuid) não recuperou a configuração salva no store!`);
+    process.exit(1);
+  }
+  console.log(`  ✅ decodeUserConfig(uuid) resolveu perfeitamente a configuração armazenada`);
+
+  // Test correct password authentication
+  const authSuccess = configStorage.authenticateAndGetConfig(testUuid, testPassword);
+  if (!authSuccess.success || !authSuccess.config) {
+    console.error(`❌ configStorage.authenticateAndGetConfig falhou com senha correta!`);
+    process.exit(1);
+  }
+  console.log(`  ✅ Autenticação com senha correta funcionou com sucesso`);
+
+  // Test incorrect password authentication
+  const authFail = configStorage.authenticateAndGetConfig(testUuid, 'WrongPassword123');
+  if (authFail.success || authFail.error !== 'UUID ou senha inválidos.') {
+    console.error(`❌ configStorage.authenticateAndGetConfig não rejeitou senha incorreta com mensagem padrão!`, authFail);
+    process.exit(1);
+  }
+  console.log(`  ✅ Autenticação com senha incorreta retornou erro seguro: "${authFail.error}"`);
 
   console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
   process.exit(0);
 }
 
-runPipelineIntegrationTest().catch(err => {
+runAllTests().catch(err => {
   console.error('❌ Erro inesperado no teste de integração:', err);
   process.exit(1);
 });
+

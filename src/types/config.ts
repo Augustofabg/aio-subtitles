@@ -13,6 +13,11 @@ export interface CustomAddonConfig {
   enabled: boolean;
   logo?: string;
   description?: string;
+  timeout?: number;
+  resources?: string[];
+  selectedResources?: string[];
+  configurable?: boolean;
+  configurationURL?: string;
 }
 
 export interface UserConfig {

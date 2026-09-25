@@ -1,4 +1,5 @@
 import { UserConfig, PartialUserConfig } from '../types/config';
+import { isUuid, configStorage } from '../storage/configStore';
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
   instanceName: 'AIOSubtitles',
@@ -6,9 +7,9 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
   instanceLogo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
   instanceVersion: 'v1.0.0',
   providers: {
-    'opensubtitles': { enabled: true, apiKey: '' },
-    'subdl': { enabled: true, apiKey: '' },
-    'subsource': { enabled: true, apiKey: '' }
+    'opensubtitles': { enabled: false, apiKey: '' },
+    'subdl': { enabled: false, apiKey: '' },
+    'subsource': { enabled: false, apiKey: '' }
   },
   customAddons: [],
   addonFetchingStrategy: 'default',
@@ -44,12 +45,20 @@ export function encodeUserConfig(config: UserConfig): string {
 }
 
 /**
- * Decodes a configuration string (Base64URL, standard Base64, or URI-encoded JSON)
+ * Decodes a configuration string (UUID, Base64URL, standard Base64, or URI-encoded JSON)
  * and deep-merges with default configuration.
  */
 export function decodeUserConfig(encodedStr?: string | null): UserConfig {
   if (!encodedStr || encodedStr.trim() === '' || encodedStr === 'default') {
     return { ...DEFAULT_USER_CONFIG };
+  }
+
+  // 1. Check if encodedStr is a UUID in the persistent store
+  if (isUuid(encodedStr)) {
+    const stored = configStorage.getConfigByUuid(encodedStr);
+    if (stored) {
+      return mergeWithDefaults(stored);
+    }
   }
 
   try {
@@ -89,14 +98,39 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     ? ((partial as unknown as { customAddons: unknown[] }).customAddons
         .filter(a => a && typeof a === 'object' && typeof (a as { manifestUrl?: unknown }).manifestUrl === 'string')
         .map(a => {
-          const item = a as { id?: string; name?: string; manifestUrl: string; enabled?: boolean; logo?: string; description?: string };
+          const item = a as {
+            id?: string;
+            name?: string;
+            manifestUrl: string;
+            enabled?: boolean;
+            logo?: string;
+            description?: string;
+            timeout?: unknown;
+            resources?: string[];
+            selectedResources?: string[];
+            configurable?: boolean;
+            configurationURL?: string;
+          };
+
+          let timeoutVal = 20000;
+          if (typeof item.timeout === 'number' && !isNaN(item.timeout)) {
+            timeoutVal = Math.max(1000, Math.min(60000, Math.round(item.timeout)));
+          } else if (typeof item.timeout === 'string' && !isNaN(parseInt(item.timeout, 10))) {
+            timeoutVal = Math.max(1000, Math.min(60000, parseInt(item.timeout, 10)));
+          }
+
           return {
             id: (item.id && String(item.id).trim()) || `addon-${Math.random().toString(36).substring(2, 8)}`,
             name: (item.name && String(item.name).trim()) || 'External Addon',
             manifestUrl: String(item.manifestUrl).trim(),
             enabled: typeof item.enabled === 'boolean' ? item.enabled : true,
             logo: typeof item.logo === 'string' ? item.logo.trim() : undefined,
-            description: typeof item.description === 'string' ? item.description.trim() : undefined
+            description: typeof item.description === 'string' ? item.description.trim() : undefined,
+            resources: Array.isArray(item.resources) ? item.resources : undefined,
+            selectedResources: Array.isArray(item.selectedResources) ? item.selectedResources : undefined,
+            configurable: typeof item.configurable === 'boolean' ? item.configurable : undefined,
+            configurationURL: typeof item.configurationURL === 'string' ? item.configurationURL : undefined,
+            timeout: timeoutVal
           };
         }))
     : [];
@@ -135,9 +169,9 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       ? partial.instanceVersion.trim()
       : DEFAULT_USER_CONFIG.instanceVersion,
     providers: {
-      'opensubtitles': { enabled: true, apiKey: '' },
-      'subdl': { enabled: true, apiKey: '' },
-      'subsource': { enabled: true, apiKey: '' }
+      'opensubtitles': { enabled: false, apiKey: '' },
+      'subdl': { enabled: false, apiKey: '' },
+      'subsource': { enabled: false, apiKey: '' }
     },
     customAddons,
     addonFetchingStrategy: partial.addonFetchingStrategy === 'fastest' ? 'fastest' : 'default',
@@ -179,9 +213,13 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       }
 
       if (result.providers[targetKey]) {
+        const apiKey = typeof val.apiKey === 'string' ? val.apiKey.trim() : (result.providers[targetKey]?.apiKey || '');
+        const hasApiKey = Boolean(apiKey && apiKey.trim() !== '');
+        const enabled = hasApiKey ? (typeof val.enabled === 'boolean' ? val.enabled : false) : false;
+
         result.providers[targetKey] = {
-          enabled: typeof val.enabled === 'boolean' ? val.enabled : true,
-          apiKey: typeof val.apiKey === 'string' ? val.apiKey.trim() : (result.providers[targetKey]?.apiKey || ''),
+          enabled,
+          apiKey,
           username: typeof val.username === 'string' ? val.username.trim() : undefined,
           password: typeof val.password === 'string' ? val.password : undefined,
           customEndpoint: typeof val.customEndpoint === 'string' ? val.customEndpoint.trim() : undefined

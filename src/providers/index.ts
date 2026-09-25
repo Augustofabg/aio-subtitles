@@ -48,6 +48,9 @@ export async function executeParallelSearch(
   if (Array.isArray(config.customAddons)) {
     for (const custom of config.customAddons) {
       if (custom && custom.enabled !== false && custom.manifestUrl) {
+        if (Array.isArray(custom.selectedResources) && !custom.selectedResources.includes('subtitles')) {
+          continue;
+        }
         activeProviders.push(
           new GenericStremioAddonProvider(custom.id, custom.name, custom.manifestUrl)
         );
@@ -67,10 +70,15 @@ export async function executeParallelSearch(
 
   // Launch all providers concurrently with Promise.allSettled
   const searchPromises = activeProviders.map(provider => {
+    const customConfig = config.customAddons?.find(c => c.id === provider.id);
+    const timeoutMs = (customConfig && typeof customConfig.timeout === 'number' && customConfig.timeout > 0)
+      ? customConfig.timeout
+      : config.providerTimeoutMs;
+
     const context: ProviderContext = {
       config,
       providerConfig: config.providers[provider.id] || { enabled: true },
-      timeoutMs: config.providerTimeoutMs
+      timeoutMs
     };
     return provider.search(query, context);
   });

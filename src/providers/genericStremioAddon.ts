@@ -40,15 +40,16 @@ export class GenericStremioAddonProvider extends BaseSubtitleProvider {
 
   protected async executeSearch(
     query: SubtitleQuery,
-    _context: ProviderContext,
+    context: ProviderContext,
     signal: AbortSignal
   ): Promise<RawSubtitleItem[]> {
     // Construct Stremio protocol subtitles endpoint
     const url = `${this.baseUrl}/subtitles/${encodeURIComponent(query.type)}/${encodeURIComponent(query.id)}.json`;
 
+    const timeout = context.timeoutMs || 20000;
     const response = await this.httpGet<GenericStremioSubtitlesResponse>(
       url,
-      { timeout: 10000 },
+      { timeout },
       signal
     );
 
