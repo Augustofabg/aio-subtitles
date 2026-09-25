@@ -68,17 +68,48 @@ export function renderTemplate(template: string, ctx: TemplateContext): string {
 }
 
 /**
- * Normalizes release names for better readability
+ * Normalizes and sanitizes release names for better readability.
+ * Strictly prevents URLs, long base64 strings, and technical garbage from leaking into labels.
  */
-function cleanReleaseName(raw: string): string {
-  return raw
+export function cleanReleaseName(raw: string): string {
+  if (!raw || typeof raw !== 'string') return 'Standard';
+
+  let cleaned = raw.trim();
+
+  // 1. If contains a filename parameter (e.g. "...filename=POB SRT.srt"), extract the actual filename
+  const filenameMatch = cleaned.match(/filename=([^&;]+)/i);
+  if (filenameMatch && filenameMatch[1]) {
+    try {
+      cleaned = decodeURIComponent(filenameMatch[1].trim());
+    } catch {
+      cleaned = filenameMatch[1].trim();
+    }
+  }
+
+  // 2. Remove full URL schemes and hostnames if present
+  cleaned = cleaned.replace(/https?:\/\/[^\s/$.?#].[^\s]*/gi, '');
+
+  // 3. Strip long base64/hex hash tokens (>35 consecutive alphanumeric characters without spaces)
+  cleaned = cleaned.replace(/[A-Za-z0-9+/=_-]{35,}/g, '');
+
+  // 4. Clean extensions and normalize dots/spaces
+  cleaned = cleaned
     .replace(/\.srt$/i, '')
     .replace(/\.vtt$/i, '')
+    .replace(/\.sub$/i, '')
     .replace(/_/g, '.')
     .replace(/\s+/g, '.')
     .replace(/\.+/g, '.')
     .replace(/^\./, '')
-    .replace(/\.$/, '');
+    .replace(/\.$/, '')
+    .trim();
+
+  // 5. Ensure no individual token exceeds 60 characters without spaces
+  const tokens = cleaned.split(/\s+/);
+  const truncatedTokens = tokens.map(t => (t.length > 60 ? t.substring(0, 60) : t));
+  cleaned = truncatedTokens.join(' ').trim();
+
+  return cleaned || 'Standard';
 }
 
 /**

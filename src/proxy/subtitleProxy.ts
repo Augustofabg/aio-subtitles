@@ -54,8 +54,17 @@ function toUtf8(buffer: Buffer): string {
  * GET /download/:id/:filename
  */
 export async function handleShortIdDownload(req: Request, res: Response): Promise<void> {
-  const shortId = req.params.id;
-  const entry = proxyDownloadStore.get(shortId);
+  let shortId = req.params.id;
+  let entry = proxyDownloadStore.get(shortId);
+
+  // If shortId has file extension (e.g. "os_abc123.srt"), resolve by stripping extension
+  if (!entry && shortId.includes('.')) {
+    const cleanId = shortId.replace(/\.(srt|vtt|sub)$/i, '');
+    entry = proxyDownloadStore.get(cleanId);
+    if (entry) {
+      shortId = cleanId;
+    }
+  }
 
   if (!entry) {
     res.status(404).send('Subtitle download link expired or not found. Please refresh subtitles in your player.');

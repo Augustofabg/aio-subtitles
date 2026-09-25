@@ -4,6 +4,10 @@ import { buildTemplateContext, renderTemplate } from '../src/utils/template';
 import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../src/utils/normalizer';
 import { registerProxyDownload } from '../src/proxy/subtitleProxy';
 import { RawSubtitleItem } from '../src/types/provider';
+import { getAggregatedSubtitles, assertCleanSubtitleItem } from '../src/core/aggregator';
+import { DEFAULT_USER_CONFIG } from '../src/config/userConfig';
+import { UserConfig } from '../src/types/config';
+import { globalSubtitleCache } from '../src/utils/cache';
 
 console.log('🧪 Iniciando suíte de testes de validação do AIO Subtitles...\n');
 
@@ -158,5 +162,139 @@ if (!generatedUrl.includes(`/download/${shortId}/`)) {
 console.log(`  ✅ ID Limpo (sem base64): "${generatedId}"`);
 console.log(`  ✅ URL de Download Limpa (sem base64): "${generatedUrl}"`);
 
-console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
-process.exit(0);
+// 6. Bug 6.5: Test assertCleanSubtitleItem rejects URLs and >80 chars unspaced strings
+console.log('\n--- Teste 6: Bug 6.5 - Validação/Assert contra Vazamento de URL no ID ou Rótulo ---');
+// 6a. Clean values should pass
+assertCleanSubtitleItem('subdl-pob-1', '[SubDL] 🇧🇷 1080p.BluRay');
+console.log('  ✅ assertCleanSubtitleItem aceitou ID e rótulo limpos com sucesso');
+
+// 6b. URL in ID must throw
+try {
+  assertCleanSubtitleItem('https://external.com/sub/123', '[SubDL] 🇧🇷 1080p');
+  console.error('❌ Falha: assertCleanSubtitleItem não barrou URL no ID!');
+  process.exit(1);
+} catch (e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso URL no ID: ${msg}`);
+}
+
+// 6c. URL in label must throw
+try {
+  assertCleanSubtitleItem('subdl-pob-1', 'https://external.com/sub.srt');
+  console.error('❌ Falha: assertCleanSubtitleItem não barrou URL no rótulo!');
+  process.exit(1);
+} catch (e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso URL no rótulo: ${msg}`);
+}
+
+// 6d. String > 80 chars without spaces must throw
+try {
+  const longHash = 'a'.repeat(85);
+  assertCleanSubtitleItem(longHash, '[SubDL] 🇧🇷 1080p');
+  console.error('❌ Falha: assertCleanSubtitleItem não barrou token > 80 caracteres sem espaços!');
+  process.exit(1);
+} catch (e: unknown) {
+  const msg = e instanceof Error ? e.message : String(e);
+  console.log(`  ✅ assertCleanSubtitleItem barrou com sucesso token > 80 caracteres sem espaços: ${msg}`);
+}
+
+// 7. Bug 6.5 Integration Test:
+// Simula uma resposta de conector com lang: "pt-BR" e um id/url originais longos,
+// e verifica que a resposta final tem:
+// (a) lang normalizado para pob
+// (b) id curto e sem substring de URL
+// (c) rótulo/nome de arquivo igual ao gerado pelo template configurado, não ao original do conector
+console.log('\n--- Teste 7: Bug 6.5 - Teste de Integração de Pipeline Completo ---');
+
+async function runPipelineIntegrationTest(): Promise<void> {
+  const mockRawExternalSubtitles: RawSubtitleItem[] = [
+    {
+      id: 'aHR0cHM6Ly9zdWJzNS5zdHJlbS5pby9lbi9kb3dubG9hZC9zdWJlbmNvZGluZy1zdHJlbWlvLXV0ZjgvZmlsZS8xOTUyMTYwNTky',
+      provider: 'external-addon',
+      providerName: 'External Subs Addon',
+      url: 'https://subs5.strem.io/en/download/subencoding-stremio-utf8/src-api/file/1952160592?token=xyz123abc456&user=999',
+      lang: 'pt-BR', // BCP-47 requiring normalization to pob
+      release: 'Breaking.Bad.S01E01.720p.HDTV.x264'
+    }
+  ];
+
+  const testQuery = {
+    type: 'series',
+    id: 'tt0903747:1:1',
+    imdbId: 'tt0903747',
+    season: 1,
+    episode: 1
+  };
+
+  const testUserConfig: UserConfig = {
+    ...DEFAULT_USER_CONFIG,
+    languages: ['pob', 'eng'], // Whitelist pob
+    namingTemplate: '[{provider}] {lang_flag} {release}',
+    languageRemap: { 'pt-br': 'pob', 'por': 'pob' },
+    allowUnknownLanguages: false,
+    deduplication: true,
+    proxySubtitles: true
+  };
+
+  // Seed the cache with raw subtitle to simulate connector execution
+  const enabledIds = Object.keys(testUserConfig.providers).filter(
+    id => testUserConfig.providers[id]?.enabled !== false
+  );
+  const testCacheKey = globalSubtitleCache.generateKey(
+    testQuery.id,
+    testUserConfig.languages,
+    enabledIds,
+    testQuery.season,
+    testQuery.episode
+  );
+  globalSubtitleCache.set(testCacheKey, mockRawExternalSubtitles);
+
+  // Execute pipeline
+  const testBaseUrl = 'http://localhost:7000';
+  const finalResponse = await getAggregatedSubtitles(testQuery, testUserConfig, testBaseUrl);
+
+  if (!finalResponse.subtitles || finalResponse.subtitles.length !== 1) {
+    console.error(`❌ Falha: Esperava 1 legenda na resposta final, recebeu ${finalResponse.subtitles?.length}`);
+    process.exit(1);
+  }
+
+  const finalSub = finalResponse.subtitles[0];
+
+  // (a) lang normalizado para pob
+  if (finalSub.lang !== 'pob') {
+    console.error(`❌ Falha no critério (a): lang esperado "pob", recebeu "${finalSub.lang}"`);
+    process.exit(1);
+  }
+  console.log(`  ✅ (a) lang normalizado com sucesso para: "${finalSub.lang}"`);
+
+  // (b) id curto e sem substring de URL
+  if (finalSub.id.includes('http') || finalSub.id.includes('https') || finalSub.id.length > 50) {
+    console.error(`❌ Falha no critério (b): id contém URL ou excede tamanho curto: "${finalSub.id}"`);
+    process.exit(1);
+  }
+  console.log(`  ✅ (b) id curto e sem URL: "${finalSub.id}" (length: ${finalSub.id.length})`);
+
+  // (c) rótulo/nome de arquivo igual ao gerado pelo template configurado, não ao original do conector
+  const expectedTemplateLabel = '[External Subs Addon] 🇧🇷 Breaking.Bad.S01E01.720p.HDTV.x264';
+  if (finalSub.title !== expectedTemplateLabel || finalSub.file !== `${expectedTemplateLabel}.srt`) {
+    console.error(`❌ Falha no critério (c): rótulo não bate com o template!\nEsperado: "${expectedTemplateLabel}"\nRecebido title: "${finalSub.title}"\nRecebido file: "${finalSub.file}"`);
+    process.exit(1);
+  }
+  console.log(`  ✅ (c) rótulo/nome de arquivo igual ao gerado pelo template configurado: "${finalSub.title}"`);
+
+  // Also verify (d) proxy URL points to /download/:idCurto.srt
+  if (!finalSub.url.startsWith(`${testBaseUrl}/download/`) || !finalSub.url.endsWith('.srt')) {
+    console.error(`❌ Falha no critério proxy: URL não aponta para /download/:idCurto.srt: "${finalSub.url}"`);
+    process.exit(1);
+  }
+  console.log(`  ✅ (d) URL de proxy interna verificada: "${finalSub.url}"`);
+
+  console.log('\n🎉 TODOS OS TESTES PASSARAM COM 100% DE SUCESSO!');
+  process.exit(0);
+}
+
+runPipelineIntegrationTest().catch(err => {
+  console.error('❌ Erro inesperado no teste de integração:', err);
+  process.exit(1);
+});
