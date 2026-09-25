@@ -1130,6 +1130,9 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
   transition: var(--transition);
 }
 
@@ -1140,6 +1143,8 @@ body {
 
 .custom-addon-info {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -1166,6 +1171,15 @@ body {
   border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
+.custom-addon-url-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .custom-addon-url {
   font-size: 0.75rem;
   color: var(--text-dim);
@@ -1173,13 +1187,33 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-copy-addon-url {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.btn-copy-addon-url:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 .custom-addon-actions {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .btn-remove-addon {
@@ -1190,6 +1224,8 @@ body {
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
   transition: var(--transition);
 }
 

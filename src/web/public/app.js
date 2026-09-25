@@ -52,6 +52,7 @@ const timeoutSlider = document.getElementById('timeout-slider');
 const timeoutValEl = document.getElementById('timeout-val');
 const dedupToggle = document.getElementById('dedup-toggle');
 const proxyToggle = document.getElementById('proxy-subtitles-toggle');
+const allowUnknownLangToggle = document.getElementById('allow-unknown-lang-toggle');
 const mockupSubList = document.getElementById('mockup-sub-list');
 const btnGenerate = document.getElementById('btn-generate');
 const manifestUrlInput = document.getElementById('manifest-url-input');
@@ -123,6 +124,9 @@ async function initApp() {
   renderProviders();
   renderCustomAddons();
   renderLanguages();
+  if (allowUnknownLangToggle) {
+    allowUnknownLangToggle.checked = Boolean(state.config.allowUnknownLanguages);
+  }
   renderRemapRules();
   renderPriorityList();
   setupEventListeners();
@@ -148,7 +152,10 @@ function renderCustomAddons() {
           <span class="custom-addon-name">${addon.name}</span>
           <span class="badge-manifest-name" title="Nome verificado no manifest oficial">Lido do Manifest: ${addon.name}</span>
         </div>
-        <div class="custom-addon-url" title="${addon.manifestUrl}">${addon.manifestUrl}</div>
+        <div class="custom-addon-url-wrap">
+          <span class="custom-addon-url" title="${addon.manifestUrl}">${addon.manifestUrl}</span>
+          <button type="button" class="btn-copy-addon-url" title="Copiar URL completa do manifest">Copiar URL</button>
+        </div>
       </div>
       <div class="custom-addon-actions">
         <div class="toggle-wrap">
@@ -158,6 +165,19 @@ function renderCustomAddons() {
         <button type="button" class="btn-remove-addon" title="Remover este addon">&times; Remover</button>
       </div>
     `;
+
+    // Copy URL
+    const copyUrlBtn = card.querySelector('.btn-copy-addon-url');
+    copyUrlBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(addon.manifestUrl).then(() => {
+        copyUrlBtn.textContent = 'Copiado!';
+        copyUrlBtn.style.color = '#10b981';
+        setTimeout(() => {
+          copyUrlBtn.textContent = 'Copiar URL';
+          copyUrlBtn.style.color = '';
+        }, 1500);
+      });
+    });
 
     // Toggle
     card.querySelector(`#custom-addon-toggle-${idx}`).addEventListener('change', (e) => {
@@ -523,6 +543,7 @@ function generateManifestUrl() {
   state.config.providerTimeoutMs = parseInt(timeoutSlider.value, 10);
   state.config.deduplication = dedupToggle.checked;
   state.config.proxySubtitles = proxyToggle.checked;
+  state.config.allowUnknownLanguages = allowUnknownLangToggle ? allowUnknownLangToggle.checked : false;
 
   const encoded = base64UrlEncode(state.config);
   const host = window.location.host;
@@ -629,6 +650,13 @@ function setupEventListeners() {
   proxyToggle.addEventListener('change', () => {
     generateManifestUrl();
   });
+
+  // Unknown languages toggle
+  if (allowUnknownLangToggle) {
+    allowUnknownLangToggle.addEventListener('change', () => {
+      generateManifestUrl();
+    });
+  }
 
   // Generate button
   btnGenerate.addEventListener('click', () => {

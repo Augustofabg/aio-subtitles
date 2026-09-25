@@ -18,6 +18,7 @@ export interface UserConfig {
   customAddons: CustomAddonConfig[];
   providerPriority: string[];
   languages: string[];
+  allowUnknownLanguages: boolean;
   languageRemap: Record<string, string>;
   namingTemplate: string;
   providerTimeoutMs: number;

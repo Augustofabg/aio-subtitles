@@ -7,7 +7,7 @@ import { ENV } from './config/env';
 import { StremioManifest } from './types/stremio';
 import { decodeUserConfig, encodeUserConfig, DEFAULT_USER_CONFIG } from './config/userConfig';
 import { parseSubtitleQuery, getAggregatedSubtitles } from './core/aggregator';
-import { handleSubtitleProxy, handleOpenSubtitlesRestDownload } from './proxy/subtitleProxy';
+import { handleSubtitleProxy, handleOpenSubtitlesRestDownload, handleShortIdDownload } from './proxy/subtitleProxy';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
 import { getAllProviders } from './providers';
 import { generatePreviewExamples } from './utils/template';
@@ -228,7 +228,13 @@ export function createServer(): express.Application {
   app.get('/subtitles/:type/:id.json', handleSubtitles);
   app.get('/subtitles/:type/:id/:extra.json', handleSubtitles);
 
-  // Subtitle Proxy Endpoints
+  // Clean Subtitle Download & Proxy Endpoints (Bug 6.3 fix - Short ID, NO base64 leaked)
+  app.get('/download/:id', handleShortIdDownload);
+  app.get('/download/:id/:filename', handleShortIdDownload);
+  app.get('/sub/:id', handleShortIdDownload);
+  app.get('/sub/:id/:filename', handleShortIdDownload);
+
+  // Legacy Subtitle Proxy Endpoints (retained for backward compatibility)
   app.get('/proxy/subtitle/:data', handleSubtitleProxy);
   app.get('/proxy/download/os-rest/:fileId', handleOpenSubtitlesRestDownload);
 

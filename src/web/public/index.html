@@ -127,6 +127,17 @@
             <div id="languages-picker" class="languages-dropdown scrollable">
               <!-- Language checkboxes with flags -->
             </div>
+
+            <div class="unknown-lang-box" style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:flex-start;gap:12px;">
+              <div class="toggle-wrap">
+                <input type="checkbox" id="allow-unknown-lang-toggle">
+                <label for="allow-unknown-lang-toggle" class="toggle-slider"></label>
+              </div>
+              <div class="toggle-text">
+                <label for="allow-unknown-lang-toggle" class="toggle-title" style="font-size:0.85rem;font-weight:600;color:#fff;cursor:pointer;">Incluir legendas com idioma não identificado</label>
+                <p class="toggle-desc" style="font-size:0.75rem;color:var(--text-dim);margin-top:2px;">Desmarcado por padrão para <strong>EVITAR</strong> criar a aba "Desconhecido" no player do Stremio/Nuvio quando um addon externo retorna códigos inválidos.</p>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -269,13 +269,114 @@ export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
     nativeName: 'עברית',
     flag: '🇮🇱',
     aliases: ['hebrew', 'heb', 'he', 'iw']
+  },
+  {
+    code: 'cat',
+    iso639_1: 'ca',
+    iso639_2: 'cat',
+    name: 'Catalan',
+    nativeName: 'Català',
+    flag: '🇪🇸',
+    aliases: ['catalan', 'catala', 'cat', 'ca']
+  },
+  {
+    code: 'hrv',
+    iso639_1: 'hr',
+    iso639_2: 'hrv',
+    name: 'Croatian',
+    nativeName: 'Hrvatski',
+    flag: '🇭🇷',
+    aliases: ['croatian', 'hrvatski', 'hrv', 'scr', 'hr']
+  },
+  {
+    code: 'srp',
+    iso639_1: 'sr',
+    iso639_2: 'srp',
+    name: 'Serbian',
+    nativeName: 'Srpski',
+    flag: '🇷🇸',
+    aliases: ['serbian', 'srpski', 'srp', 'scc', 'sr']
+  },
+  {
+    code: 'slv',
+    iso639_1: 'sl',
+    iso639_2: 'slv',
+    name: 'Slovenian',
+    nativeName: 'Slovenščina',
+    flag: '🇸🇮',
+    aliases: ['slovenian', 'slovenscina', 'slv', 'sl']
+  },
+  {
+    code: 'bul',
+    iso639_1: 'bg',
+    iso639_2: 'bul',
+    name: 'Bulgarian',
+    nativeName: 'Български',
+    flag: '🇧🇬',
+    aliases: ['bulgarian', 'bul', 'bg']
+  },
+  {
+    code: 'slk',
+    iso639_1: 'sk',
+    iso639_2: 'slk',
+    name: 'Slovak',
+    nativeName: 'Slovenčina',
+    flag: '🇸🇰',
+    aliases: ['slovak', 'slovencina', 'slk', 'slo', 'sk']
+  },
+  {
+    code: 'tam',
+    iso639_1: 'ta',
+    iso639_2: 'tam',
+    name: 'Tamil',
+    nativeName: 'தமிழ்',
+    flag: '🇮🇳',
+    aliases: ['tamil', 'tam', 'ta']
+  },
+  {
+    code: 'tgl',
+    iso639_1: 'tl',
+    iso639_2: 'tgl',
+    name: 'Tagalog / Filipino',
+    nativeName: 'Filipino',
+    flag: '🇵🇭',
+    aliases: ['tagalog', 'filipino', 'tgl', 'fil', 'tl']
+  },
+  {
+    code: 'msa',
+    iso639_1: 'ms',
+    iso639_2: 'msa',
+    name: 'Malay',
+    nativeName: 'Bahasa Melayu',
+    flag: '🇲🇾',
+    aliases: ['malay', 'bahasa melayu', 'msa', 'may', 'ms']
+  },
+  {
+    code: 'glg',
+    iso639_1: 'gl',
+    iso639_2: 'glg',
+    name: 'Galician',
+    nativeName: 'Galego',
+    flag: '🇪🇸',
+    aliases: ['galician', 'galego', 'glg', 'gl']
+  },
+  {
+    code: 'eus',
+    iso639_1: 'eu',
+    iso639_2: 'eus',
+    name: 'Basque',
+    nativeName: 'Euskara',
+    flag: '🇪🇸',
+    aliases: ['basque', 'euskara', 'eus', 'baq', 'eu']
   }
 ];
 
 // Pre-compute lookup table for fast O(1) matching
 const LOOKUP_MAP = new Map<string, LanguageInfo>();
+const VALID_ISO639_2_CODES = new Set<string>();
 
 for (const lang of SUPPORTED_LANGUAGES) {
+  VALID_ISO639_2_CODES.add(lang.code.toLowerCase());
   LOOKUP_MAP.set(lang.code.toLowerCase(), lang);
   LOOKUP_MAP.set(lang.iso639_1.toLowerCase(), lang);
   LOOKUP_MAP.set(lang.iso639_2.toLowerCase(), lang);
@@ -287,12 +388,22 @@ for (const lang of SUPPORTED_LANGUAGES) {
 }
 
 /**
- * Normalizes any language string/code into a standard 3-letter ISO 639-2 code (e.g. 'pob', 'eng', 'spa').
- * Returns the original trimmed lowercase string if no match is found.
+ * Checks whether a 3-letter code is a valid ISO 639-2 code known to Stremio/Nuvio
  */
-export function normalizeLanguageCode(raw: string | undefined | null): string {
-  if (!raw) return 'unknown';
+export function isValidIso639_2(code: string | undefined | null): boolean {
+  if (!code) return false;
+  return VALID_ISO639_2_CODES.has(code.trim().toLowerCase());
+}
+
+/**
+ * Normalizes any language string/code/alias into a standard 3-letter ISO 639-2 code (e.g. 'pob', 'eng', 'spa').
+ * Returns null if the language cannot be resolved to a known ISO 639-2 code.
+ */
+export function normalizeLanguageCode(raw: string | undefined | null): string | null {
+  if (!raw || typeof raw !== 'string') return null;
   const clean = raw.trim().toLowerCase().replace(/_/g, '-');
+  if (clean === '' || clean === 'unknown' || clean === 'desconhecido') return null;
+
   const found = LOOKUP_MAP.get(clean);
   if (found) return found.code;
   
@@ -303,7 +414,7 @@ export function normalizeLanguageCode(raw: string | undefined | null): string {
     if (prefixFound) return prefixFound.code;
   }
   
-  return clean;
+  return null;
 }
 
 /**

@@ -17,6 +17,7 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     'addic7ed'
   ],
   languages: ['pob', 'por', 'eng'],
+  allowUnknownLanguages: false,
   languageRemap: {
     'por': 'pob',
     'pt-br': 'pob',
@@ -107,6 +108,9 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     languages: Array.isArray(partial.languages) && partial.languages.length > 0
       ? partial.languages.map(l => l.trim().toLowerCase())
       : [...DEFAULT_USER_CONFIG.languages],
+    allowUnknownLanguages: typeof partial.allowUnknownLanguages === 'boolean'
+      ? partial.allowUnknownLanguages
+      : DEFAULT_USER_CONFIG.allowUnknownLanguages,
     languageRemap: typeof partial.languageRemap === 'object' && partial.languageRemap !== null
       ? { ...partial.languageRemap }
       : { ...DEFAULT_USER_CONFIG.languageRemap },

@@ -2,10 +2,11 @@ import { StremioSubtitle, StremioSubtitlesResponse } from '../types/stremio';
 import { SubtitleQuery, RawSubtitleItem } from '../types/provider';
 import { UserConfig } from '../types/config';
 import { executeParallelSearch } from '../providers';
-import { isLanguageWhitelisted, applyLanguageRemap } from '../utils/normalizer';
+import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../utils/normalizer';
 import { buildTemplateContext, renderTemplate } from '../utils/template';
 import { deduplicateSubtitles, prioritizeSubtitles } from '../utils/deduplicator';
 import { globalSubtitleCache } from '../utils/cache';
+import { registerProxyDownload } from '../proxy/subtitleProxy';
 import { Logger } from '../utils/logger';
 
 /**
@@ -80,17 +81,39 @@ export async function getAggregatedSubtitles(
     Logger.info(`Serving subtitles from cache for ${query.id} (${rawSubtitles.length} items)`);
   }
 
-  // 3. Language Normalization & Whitelist Filtering (Problem #1)
-  const whitelistedItems = rawSubtitles.filter(sub =>
-    isLanguageWhitelisted(sub.lang, config.languages, config.languageRemap)
-  );
+  // 3. Language Normalization & Whitelist Filtering (Bug 6.2 fix)
+  const validAndWhitelistedItems: RawSubtitleItem[] = [];
 
-  Logger.info(`Language filter: ${rawSubtitles.length} -> ${whitelistedItems.length} subtitles`, {
-    whitelist: config.languages
+  for (const sub of rawSubtitles) {
+    const validation = validateAndNormalizeLanguage(
+      sub.lang,
+      config.allowUnknownLanguages,
+      config.languageRemap
+    );
+
+    if (!validation.valid) {
+      Logger.warn(`Discarded subtitle due to invalid ISO 639-2 language: "${sub.lang}" from provider [${sub.provider}]`, {
+        provider: sub.providerName || sub.provider,
+        release: sub.release,
+        reason: validation.discardedReason
+      });
+      continue;
+    }
+
+    if (isLanguageWhitelisted(validation.normalizedLang, config.languages)) {
+      // Store normalized and remapped ISO 639-2 code directly on item
+      sub.lang = validation.normalizedLang;
+      validAndWhitelistedItems.push(sub);
+    }
+  }
+
+  Logger.info(`Language filter & validation: ${rawSubtitles.length} -> ${validAndWhitelistedItems.length} subtitles`, {
+    whitelist: config.languages,
+    allowUnknown: config.allowUnknownLanguages
   });
 
   // 4. Prioritization by provider order (Requirement #5)
-  let orderedItems = prioritizeSubtitles(whitelistedItems, config.providerPriority);
+  let orderedItems = prioritizeSubtitles(validAndWhitelistedItems, config.providerPriority);
 
   // 5. Deduplication (Requirement #5)
   if (config.deduplication) {
@@ -99,30 +122,36 @@ export async function getAggregatedSubtitles(
     Logger.info(`Deduplication: ${beforeCount} -> ${orderedItems.length} subtitles`);
   }
 
-  // 6. Language Remapping (Problem #2) and Naming Customization (Problem #4)
+  // 6. Formatting, Short-ID Proxy Generation & Clean IDs (Bug 6.3 fix)
   const formattedSubtitles: StremioSubtitle[] = orderedItems.map((item, index) => {
-    // Apply language remapping before responding (e.g. por -> pob)
-    const remappedLang = applyLanguageRemap(item.lang, config.languageRemap);
-
     // Build naming context and render custom template
-    const ctx = buildTemplateContext(item, remappedLang);
+    const ctx = buildTemplateContext(item, item.lang);
     const customLabel = renderTemplate(config.namingTemplate, ctx);
     const ext = item.format || (item.url.toLowerCase().endsWith('.vtt') ? 'vtt' : 'srt');
     const filename = `${customLabel}.${ext}`.replace(/[\\/:*?"<>|]/g, '_');
 
-    // Handle Subtitle URL: direct or proxy
+    // Clean readable ID without any base64
+    const cleanId = `${item.provider}-${item.lang}-${index + 1}`;
+
+    // Handle Subtitle URL: Short-ID Proxy or direct URL
     let subtitleUrl = item.url;
     if (config.proxySubtitles) {
-      // Build proxy URL to inject Content-Disposition filename and fix UTF-8 encoding
-      const encodedTarget = Buffer.from(item.url, 'utf8').toString('base64url');
-      const encodedFilename = encodeURIComponent(filename);
-      subtitleUrl = `${baseUrl}/proxy/subtitle/${encodedTarget}?filename=${encodedFilename}`;
+      // Register in internal Proxy store (never leaks base64 into client UI)
+      const shortId = registerProxyDownload({
+        originalUrl: item.url,
+        filename,
+        provider: item.provider,
+        format: ext,
+        apiKey: config.providers[item.provider]?.apiKey,
+        fileId: (item.rawMetadata as Record<string, unknown> | undefined)?.fileId as string | number | undefined
+      });
+      subtitleUrl = `${baseUrl}/download/${shortId}/${encodeURIComponent(filename)}`;
     }
 
     return {
-      id: `${item.id}-${index}`,
+      id: cleanId,
       url: subtitleUrl,
-      lang: remappedLang,
+      lang: item.lang,
       // Provide custom file and title fields for players that support them (like Nuvio or Stremio Web)
       file: filename,
       title: customLabel
