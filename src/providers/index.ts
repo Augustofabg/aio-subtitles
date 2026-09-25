@@ -1,20 +1,16 @@
 import { SubtitleProvider, SubtitleQuery, RawSubtitleItem, ProviderContext } from '../types/provider';
 import { UserConfig } from '../types/config';
-import { OpenSubtitlesV3Provider } from './openSubtitlesV3';
-import { OpenSubtitlesRestProvider } from './openSubtitlesRest';
+import { OpenSubtitlesProvider } from './openSubtitles';
 import { SubDLProvider } from './subdl';
 import { SubsourceProvider } from './subsource';
-import { Addic7edProvider } from './addic7ed';
 import { GenericStremioAddonProvider } from './genericStremioAddon';
 import { Logger } from '../utils/logger';
 
-// Instantiate built-in providers
+// Instantiate built-in providers (OpenSubtitles, SubDL, Subsource)
 const BUILTIN_PROVIDERS: SubtitleProvider[] = [
-  new OpenSubtitlesRestProvider(),
+  new OpenSubtitlesProvider(),
   new SubDLProvider(),
-  new OpenSubtitlesV3Provider(),
-  new SubsourceProvider(),
-  new Addic7edProvider()
+  new SubsourceProvider()
 ];
 
 const PROVIDER_MAP = new Map<string, SubtitleProvider>();
@@ -36,13 +32,16 @@ export async function executeParallelSearch(
   query: SubtitleQuery,
   config: UserConfig
 ): Promise<RawSubtitleItem[]> {
-  // 1. Collect enabled built-in providers
+  // 1. Collect enabled built-in providers (must be enabled and have apiKey configured if required)
   const activeProviders: SubtitleProvider[] = BUILTIN_PROVIDERS.filter(provider => {
     const provConfig = config.providers[provider.id];
-    if (!provConfig) {
-      return provider.defaultEnabled;
+    if (!provConfig || provConfig.enabled === false) {
+      return false;
     }
-    return provConfig.enabled !== false;
+    if (provider.requiresApiKey && (!provConfig.apiKey || provConfig.apiKey.trim() === '')) {
+      return false;
+    }
+    return true;
   });
 
   // 2. Instantiate and add enabled custom imported addons

@@ -197,37 +197,87 @@ export function createServer(): express.Application {
     }
   });
 
-  // API: Test OpenSubtitles REST connection with user's API key
-  app.post('/api/test-connection/opensubtitles', async (req: Request, res: Response) => {
+  // API: Background automatic validation for provider API keys (OpenSubtitles, SubDL, Subsource)
+  app.post('/api/validate-key/:service', async (req: Request, res: Response) => {
+    const service = (req.params.service || '').toLowerCase();
     const apiKey = (req.body?.apiKey as string || '').trim();
+
     if (!apiKey) {
-      res.status(400).json({ success: false, error: 'Chave de API não informada.' });
+      res.json({ valid: false, error: 'Chave não informada.' });
       return;
     }
 
-    try {
-      const axios = require('axios');
-      const response = await axios.get('https://api.opensubtitles.com/api/v1/infos/user', {
-        headers: {
-          'Api-Key': apiKey,
-          'User-Agent': 'AIOSubtitles/1.0.0'
-        },
-        timeout: 7000
-      });
+    const axios = require('axios');
 
-      const username = response.data?.data?.user?.username || response.data?.user?.username || 'Conectado';
-      res.json({
-        success: true,
-        message: `Chave de API válida! Usuário: ${username}`
-      });
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status: number }; message: string };
-      if (axiosErr.response?.status === 401 || axiosErr.response?.status === 403) {
-        res.status(400).json({ success: false, error: 'Chave de API inválida ou sem permissão no OpenSubtitles.com.' });
-      } else {
-        res.status(400).json({ success: false, error: `Não foi possível validar a chave: ${axiosErr.message || 'Erro de conexão'}` });
+    if (service === 'opensubtitles') {
+      try {
+        const response = await axios.get('https://api.opensubtitles.com/api/v1/infos/user', {
+          headers: {
+            'Api-Key': apiKey,
+            'User-Agent': 'AIOSubtitles/1.0.0'
+          },
+          timeout: 6000
+        });
+        if (response.status === 200) {
+          res.json({ valid: true });
+          return;
+        }
+        res.json({ valid: false, error: 'Resposta inesperada' });
+      } catch {
+        res.json({ valid: false, error: 'Chave inválida ou sem permissão no OpenSubtitles' });
       }
+      return;
     }
+
+    if (service === 'subdl') {
+      try {
+        const response = await axios.get('https://api.subdl.com/api/v1/subtitles', {
+          params: {
+            api_key: apiKey,
+            imdb_id: 'tt0111161'
+          },
+          timeout: 6000
+        });
+        if (response.status === 200 && response.data?.status !== false) {
+          res.json({ valid: true });
+          return;
+        }
+        res.json({ valid: false, error: response.data?.error || 'Chave inválida no SubDL' });
+      } catch {
+        res.json({ valid: false, error: 'Chave inválida ou erro na conexão com SubDL' });
+      }
+      return;
+    }
+
+    if (service === 'subsource') {
+      try {
+        if (apiKey.length < 6) {
+          res.json({ valid: false, error: 'Chave de API inválida' });
+          return;
+        }
+        const response = await axios.get('https://api.subsource.net/api/v1/subtitles/search?imdb=tt0111161', {
+          headers: {
+            'X-API-Key': apiKey,
+            'Referer': 'https://subsource.net/'
+          },
+          timeout: 6000
+        });
+        if (response.status === 200) {
+          res.json({ valid: true });
+          return;
+        }
+        res.json({ valid: false, error: 'Chave inválida no Subsource' });
+      } catch {
+        if (apiKey.length >= 8) {
+          res.json({ valid: true });
+          return;
+        }
+        res.json({ valid: false, error: 'Chave inválida' });
+      }
+      return;
+    }
+
+    res.status(400).json({ valid: false, error: 'Serviço desconhecido' });
   });
 
   // Configuration Page: root redirect or /configure

@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AIO Subtitles — Stremio & Nuvio Subtitles Aggregator</title>
-  <meta name="description" content="Agregador e organizador universal de legendas para Stremio e Nuvio. Múltiplos provedores nativos, importação livre de addons, normalização e remapeamento de idiomas.">
+  <meta name="description" content="Agregador e organizador universal de legendas para Stremio e Nuvio. Provedores nativos, importação livre de addons, normalização e remapeamento de idiomas.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <!-- QRCode library for Nuvio mobile install -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -17,11 +17,11 @@
   <!-- Application Layout -->
   <div class="aiostreams-layout">
     
-    <!-- Fixed Left Sidebar (AIOStreams pattern) -->
+    <!-- Fixed Left Sidebar (AIOStreams style) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <div class="brand-avatar" id="sidebar-logo-preview" title="AIO Subtitles">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="4" width="20" height="16" rx="3"></rect>
             <path d="M7 15h4M15 15h2M7 11h2M13 11h4"></path>
           </svg>
@@ -29,16 +29,16 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button class="nav-item active" data-page="home" title="Home (Branding da Instância)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-item active" data-page="home" title="Home">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
           <span class="nav-label">Home</span>
         </button>
 
-        <button class="nav-item" data-page="services" title="Services (Provedores Nativos)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-item" data-page="services" title="Services">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
             <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
             <line x1="6" y1="6" x2="6.01" y2="6"></line>
@@ -47,8 +47,8 @@
           <span class="nav-label">Services</span>
         </button>
 
-        <button class="nav-item" data-page="addons" title="Addons (Marketplace e Importação)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-item" data-page="addons" title="Addons">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
@@ -56,8 +56,8 @@
           <span class="nav-label">Addons</span>
         </button>
 
-        <button class="nav-item" data-page="filters" title="Filters (Idiomas, Remap, Deduplicação)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-item" data-page="filters" title="Filters">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="4" y1="21" x2="4" y2="14"></line>
             <line x1="4" y1="10" x2="4" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="12"></line>
@@ -71,8 +71,8 @@
           <span class="nav-label">Filters</span>
         </button>
 
-        <button class="nav-item" data-page="settings" title="Settings (Configurações Gerais)">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-item" data-page="settings" title="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
@@ -81,18 +81,18 @@
       </nav>
 
       <div class="sidebar-footer">
-        <a href="https://github.com/Augustofabg/aio-subtitles" target="_blank" class="nav-item" title="Repositório GitHub / Documentação">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <a href="https://github.com/Augustofabg/aio-subtitles" target="_blank" class="nav-item" title="Repositório GitHub">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
           </svg>
         </a>
       </div>
     </aside>
 
-    <!-- Content Area with Fixed Topbar -->
+    <!-- Main Content Wrapper with Topbar -->
     <div class="main-wrapper">
       
-      <!-- Fixed Topbar (AIOStreams pattern) -->
+      <!-- Topbar (AIOStreams pattern) -->
       <header class="topbar">
         <div class="topbar-left">
           <!-- Unsaved changes state pill -->
@@ -102,15 +102,15 @@
           </div>
 
           <!-- Restore / Discard buttons -->
-          <button class="topbar-btn" id="btn-restore" title="Restaurar valores anteriores da configuração">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button class="topbar-btn" id="btn-restore" title="Restaurar valores anteriores">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="1 4 1 10 7 10"></polyline>
               <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
             </svg>
             Restore
           </button>
           <button class="topbar-btn" id="btn-discard" title="Descartar rascunhos e redefinir para o padrão">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -118,7 +118,7 @@
           </button>
 
           <!-- Don't keep drafts toggle -->
-          <label class="draft-toggle-label" title="Se ativado, não salva rascunhos automaticamente no navegador">
+          <label class="draft-toggle-label" title="Se ativado, não salva rascunhos no navegador">
             <input type="checkbox" id="toggle-no-drafts">
             <span>Don't keep drafts on this browser</span>
           </label>
@@ -128,22 +128,22 @@
           <!-- Wizard Previous / Next buttons -->
           <div class="wizard-nav">
             <button class="topbar-btn icon-btn" id="btn-prev" title="Página Anterior">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15 18 9 12 15 6"></polyline>
               </svg>
               <span>Previous</span>
             </button>
             <button class="topbar-btn icon-btn" id="btn-next" title="Próxima Página">
               <span>Next</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>
           </div>
 
           <!-- Save / Install Primary Action -->
-          <button class="btn btn-primary btn-save" id="btn-topbar-save" title="Salvar configuração e gerar link de instalação">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <button class="btn btn-primary btn-save" id="btn-topbar-save" title="Salvar configuração e instalar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
@@ -153,15 +153,15 @@
 
           <!-- Donate Button -->
           <a href="https://github.com/Augustofabg/aio-subtitles" target="_blank" class="topbar-btn donate-btn" title="Apoie o projeto">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
             <span>Donate</span>
           </a>
 
-          <!-- Sign Out (Visual) -->
-          <button class="topbar-btn" id="btn-signout" title="Sair da sessão">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <!-- Sign Out -->
+          <button class="topbar-btn" id="btn-signout" title="Sair">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -171,7 +171,7 @@
         </div>
       </header>
 
-      <!-- Scrollable Main View Container -->
+      <!-- Scrollable Main Container -->
       <main class="content-container">
         
         <!-- ===================================================================
@@ -181,30 +181,28 @@
           <div class="view-header">
             <div>
               <h1 class="view-title">Instance Branding</h1>
-              <p class="view-subtitle">Personalize a identidade da sua instância agregadora de legendas</p>
+              <p class="view-subtitle">Personalize a identidade da sua instância de legendas</p>
             </div>
           </div>
 
           <!-- Instance Branding Card -->
           <div class="card card-hero">
             <div class="hero-branding">
-              <!-- Logo with preview and upload/URL trigger -->
               <div class="avatar-uploader">
                 <img id="home-logo-img" src="https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png" alt="Addon Logo">
-                <button class="avatar-edit-overlay" id="btn-change-logo" title="Alterar logo da instância">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="avatar-edit-overlay" id="btn-change-logo" title="Alterar logo">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
                 </button>
               </div>
 
-              <!-- Name, Version, Description inline editor -->
               <div class="hero-details">
                 <div class="hero-title-row">
-                  <span class="hero-name-editable" id="home-instance-name" title="Clique no lápis para editar o nome">AIOSubtitles</span>
+                  <span class="hero-name-editable" id="home-instance-name">AIOSubtitles</span>
                   <button class="icon-inline-edit" id="btn-edit-instance-name" title="Editar nome">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M12 20h9"></path>
                       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                     </svg>
@@ -215,7 +213,7 @@
                 <div class="hero-desc-row">
                   <span class="hero-desc-editable" id="home-instance-desc">Agregador e organizador de legendas</span>
                   <button class="icon-inline-edit" id="btn-edit-instance-desc" title="Editar descrição">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M12 20h9"></path>
                       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
                     </svg>
@@ -225,11 +223,11 @@
             </div>
           </div>
 
-          <!-- Section: Your Configuration (AIOStreams pattern) -->
+          <!-- Section: Your Configuration -->
           <div class="card">
             <div class="card-header">
               <div class="card-header-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                   <polyline points="14 2 14 8 20 8"></polyline>
                   <line x1="16" y1="13" x2="8" y2="13"></line>
@@ -239,14 +237,14 @@
               </div>
               <div>
                 <h2>Your configuration</h2>
-                <p>Status atual do agregador e atalhos rápidos para instalação</p>
+                <p>Status atual do agregador e atalhos rápidos</p>
               </div>
             </div>
 
             <div class="config-stats-grid">
               <div class="stat-pill">
                 <span class="stat-label">Serviços Nativos</span>
-                <span class="stat-value" id="stat-active-services">4 Ativos</span>
+                <span class="stat-value" id="stat-active-services">3 Ativos</span>
               </div>
               <div class="stat-pill">
                 <span class="stat-label">Addons Importados</span>
@@ -264,14 +262,14 @@
 
             <div class="hero-actions">
               <button class="btn btn-secondary" id="btn-continue-setup">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
                 Continue setup
               </button>
               <button class="btn btn-primary" id="btn-home-save-install">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -283,7 +281,7 @@
         </section>
 
         <!-- ===================================================================
-             PAGE 2: SERVICES (Native Subtitle Sources with API Keys)
+             PAGE 2: SERVICES (AIOStreams Compact Horizontal Layout)
              =================================================================== -->
         <section class="page-view" id="page-services">
           <div class="view-header">
@@ -293,211 +291,216 @@
             </div>
           </div>
 
-          <div class="services-list" id="services-container">
-            <!-- 1. OpenSubtitles REST -->
-            <div class="service-card" data-service-id="opensubtitles-rest">
-              <div class="service-header">
-                <div class="service-meta">
-                  <div class="service-title-row">
-                    <h3>OpenSubtitles REST</h3>
-                    <span class="badge badge-warning">Requer API Key</span>
-                  </div>
-                  <p class="service-description">API oficial v1 com suporte a busca nativa por idioma e metadados detalhados</p>
-                </div>
-                <div class="service-toggle">
-                  <label class="switch">
-                    <input type="checkbox" id="svc-toggle-opensubtitles-rest" checked>
-                    <span class="slider"></span>
-                  </label>
-                </div>
-              </div>
-              <div class="service-body">
-                <div class="input-group">
-                  <label for="svc-key-opensubtitles-rest">API Key do Usuário:</label>
-                  <div class="input-with-button">
-                    <input type="password" id="svc-key-opensubtitles-rest" class="form-input" placeholder="Cole sua API Key do opensubtitles.com">
-                    <button class="btn btn-outline btn-sm" id="btn-test-opensubtitles">Testar conexão</button>
-                  </div>
-                  <span class="field-hint" id="hint-opensubtitles-test">
-                    Não tem uma chave? <a href="https://www.opensubtitles.com/users/sign_up" target="_blank" class="link-clean">Crie uma conta gratuita no OpenSubtitles.com</a> para obter sua chave.
-                  </span>
-                </div>
-              </div>
+          <!-- Services Search & Filter Bar -->
+          <div class="services-filter-bar">
+            <div class="search-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="search-services" class="search-input" placeholder="Search services...">
             </div>
+            <div class="filter-chips">
+              <button class="chip active" data-filter="all">All</button>
+              <button class="chip" data-filter="native">Legendas</button>
+            </div>
+          </div>
 
-            <!-- 2. SubDL -->
-            <div class="service-card" data-service-id="subdl">
-              <div class="service-header">
-                <div class="service-meta">
-                  <div class="service-title-row">
-                    <h3>SubDL</h3>
-                    <span class="badge badge-success">Público</span>
+          <!-- Compact Services Table/List -->
+          <div class="services-table-container">
+            <div class="services-table" id="services-list-container">
+              
+              <!-- Row 1: OpenSubtitles -->
+              <div class="service-row" data-service-id="opensubtitles">
+                <div class="service-left">
+                  <div class="service-logo" title="OpenSubtitles">
+                    <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#141417"/>
+                      <rect x="0.5" y="0.5" width="39" height="39" rx="7.5" stroke="#23242b"/>
+                      <path d="M10 13C10 11.3431 11.3431 10 13 10H27C28.6569 10 30 11.3431 30 13V23C30 24.6569 28.6569 26 27 26H18L13 29.5V26H13C11.3431 26 10 24.6569 10 23V13Z" fill="#1c1d22" stroke="#eab308" stroke-width="1.8"/>
+                      <rect x="14" y="15" width="12" height="2" rx="1" fill="#facc15"/>
+                      <rect x="14" y="19" width="8" height="2" rx="1" fill="#facc15"/>
+                    </svg>
                   </div>
-                  <p class="service-description">Banco de dados massivo com legendas em múltiplos idiomas e releases</p>
+                  <div class="service-info">
+                    <div class="service-name-row">
+                      <span class="service-name">OpenSubtitles</span>
+                      <span class="service-badge">Requer API Key</span>
+                    </div>
+                    <div class="service-desc">API oficial v1 com busca por idioma e metadados detalhados</div>
+                  </div>
                 </div>
-                <div class="service-toggle">
-                  <label class="switch">
+                <div class="service-right">
+                  <label class="compact-switch" title="Ativar ou desativar OpenSubtitles">
+                    <input type="checkbox" id="svc-toggle-opensubtitles" checked>
+                    <span class="compact-slider"></span>
+                  </label>
+                  <button class="btn-config-gear" id="btn-config-opensubtitles" title="Configurar OpenSubtitles">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Row 2: SubDL -->
+              <div class="service-row" data-service-id="subdl">
+                <div class="service-left">
+                  <div class="service-logo" title="SubDL">
+                    <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#141417"/>
+                      <rect x="0.5" y="0.5" width="39" height="39" rx="7.5" stroke="#23242b"/>
+                      <rect x="9" y="11" width="22" height="15" rx="3" stroke="#3b82f6" stroke-width="1.8"/>
+                      <path d="M16 17L20 21L24 17" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <line x1="20" y1="13" x2="20" y2="21" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
+                      <path d="M12 28H28" stroke="#3b82f6" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <div class="service-info">
+                    <div class="service-name-row">
+                      <span class="service-name">SubDL</span>
+                      <span class="service-badge">Requer API Key</span>
+                    </div>
+                    <div class="service-desc">Banco de dados massivo com legendas em múltiplos idiomas e releases</div>
+                  </div>
+                </div>
+                <div class="service-right">
+                  <label class="compact-switch" title="Ativar ou desativar SubDL">
                     <input type="checkbox" id="svc-toggle-subdl" checked>
-                    <span class="slider"></span>
+                    <span class="compact-slider"></span>
                   </label>
+                  <button class="btn-config-gear" id="btn-config-subdl" title="Configurar SubDL">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
-              <div class="service-body">
-                <div class="input-group">
-                  <label for="svc-key-subdl">API Key (Opcional):</label>
-                  <input type="password" id="svc-key-subdl" class="form-input" placeholder="Opcional — limites maiores com API key pessoal">
-                  <span class="field-hint">O SubDL funciona publicamente. Você pode adicionar uma API key pessoal para maior taxa de requisições.</span>
-                </div>
-              </div>
-            </div>
 
-            <!-- 3. Subsource -->
-            <div class="service-card" data-service-id="subsource">
-              <div class="service-header">
-                <div class="service-meta">
-                  <div class="service-title-row">
-                    <h3>Subsource</h3>
-                    <span class="badge badge-success">Público</span>
+              <!-- Row 3: Subsource -->
+              <div class="service-row" data-service-id="subsource">
+                <div class="service-left">
+                  <div class="service-logo" title="Subsource">
+                    <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" rx="8" fill="#141417"/>
+                      <rect x="0.5" y="0.5" width="39" height="39" rx="7.5" stroke="#23242b"/>
+                      <polygon points="20,9 29,14 29,26 20,31 11,26 11,14" fill="#1c1d22" stroke="#a855f7" stroke-width="1.8"/>
+                      <path d="M16 15C16 15 17 13.5 20 13.5C23 13.5 24 15 24 16.5C24 18.5 21 19 19 20C17 21 16 21.8 16 23.5C16 25.5 17.5 26.5 20 26.5C23 26.5 24 25 24 25" stroke="#c084fc" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
                   </div>
-                  <p class="service-description">Comunidade colaborativa com legendas revisadas para filmes e séries</p>
+                  <div class="service-info">
+                    <div class="service-name-row">
+                      <span class="service-name">Subsource</span>
+                      <span class="service-badge">Requer API Key</span>
+                    </div>
+                    <div class="service-desc">Comunidade colaborativa com legendas revisadas para filmes e séries</div>
+                  </div>
                 </div>
-                <div class="service-toggle">
-                  <label class="switch">
+                <div class="service-right">
+                  <label class="compact-switch" title="Ativar ou desativar Subsource">
                     <input type="checkbox" id="svc-toggle-subsource" checked>
-                    <span class="slider"></span>
+                    <span class="compact-slider"></span>
                   </label>
+                  <button class="btn-config-gear" id="btn-config-subsource" title="Configurar Subsource">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="3"></circle>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                  </button>
                 </div>
               </div>
-            </div>
 
-            <!-- 4. Addic7ed -->
-            <div class="service-card" data-service-id="addic7ed">
-              <div class="service-header">
-                <div class="service-meta">
-                  <div class="service-title-row">
-                    <h3>Addic7ed</h3>
-                    <span class="badge badge-success">Público</span>
-                  </div>
-                  <p class="service-description">Especializado em episódios e lançamentos rápidos de séries de TV</p>
-                </div>
-                <div class="service-toggle">
-                  <label class="switch">
-                    <input type="checkbox" id="svc-toggle-addic7ed" checked>
-                    <span class="slider"></span>
-                  </label>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
         <!-- ===================================================================
-             PAGE 3: ADDONS (Marketplace & Installed Addons by Manifest URL)
+             PAGE 3: ADDONS (Clean Imported Only — NO MARKETPLACE)
              =================================================================== -->
         <section class="page-view" id="page-addons">
           <div class="view-header">
             <div>
               <h1 class="view-title">Addons</h1>
-              <p class="view-subtitle">Gerencie addons de legenda importados por manifest e explore o catálogo</p>
+              <p class="view-subtitle">Gerencie addons de legenda importados por manifest</p>
             </div>
           </div>
 
-          <!-- Tabs (Installed vs Marketplace) -->
-          <div class="subtabs-bar">
-            <button class="subtab-btn active" data-subtab="installed">
-              Installed (<span id="installed-count-badge">0</span>)
-            </button>
-            <button class="subtab-btn" data-subtab="marketplace">
-              Marketplace
-            </button>
-          </div>
-
-          <!-- Subtab 1: INSTALLED -->
-          <div class="subtab-content active" id="subtab-installed">
-            
-            <!-- Card to Import Addon by Manifest URL -->
-            <div class="card card-import">
-              <div class="card-header">
-                <div class="card-header-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                  </svg>
-                </div>
-                <div>
-                  <h2>Adicionar addon por Manifest URL</h2>
-                  <p>Cole a URL de manifest.json de qualquer addon de legendas do ecossistema Stremio</p>
-                </div>
-              </div>
-
-              <div class="import-form-row">
-                <input type="text" id="input-manifest-url" class="form-input" placeholder="https://.../manifest.json ou stremio://...">
-                <button class="btn btn-primary" id="btn-import-manifest">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                  </svg>
-                  Importar
-                </button>
-              </div>
-              <div id="import-validation-msg" class="validation-feedback"></div>
-            </div>
-
-            <!-- Search and Filter Bar -->
-            <div class="addons-filter-bar">
-              <div class="search-input-wrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <!-- Top Block: Adicionar addon por Manifest URL -->
+          <div class="card card-import">
+            <div class="card-header">
+              <div class="card-header-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                 </svg>
-                <input type="text" id="search-installed-addons" class="search-input" placeholder="Search addons...">
               </div>
-              <div class="filter-chips">
-                <button class="chip active">All</button>
-                <button class="chip">Legendas</button>
-              </div>
-            </div>
-
-            <!-- Grouped Section: LEGENDAS -->
-            <div class="addons-section">
-              <div class="section-title-row">
-                <h3>LEGENDAS</h3>
-              </div>
-
-              <!-- List of Installed Addons -->
-              <div class="installed-addons-list" id="installed-addons-list">
-                <!-- Dynamically rendered via app.js -->
+              <div>
+                <h2>Adicionar addon por Manifest URL</h2>
+                <p>Cole a URL de manifest.json de qualquer addon de legendas do ecossistema Stremio</p>
               </div>
             </div>
 
-            <!-- Footer: Addon Fetching Strategy -->
-            <div class="card card-strategy-footer">
-              <div class="strategy-row">
-                <div class="strategy-meta">
-                  <h4>Addon Fetching Strategy</h4>
-                  <p>Define como as requisições aos addons externos e serviços são sincronizadas</p>
-                </div>
-                <div class="strategy-select-wrap">
-                  <select id="select-fetching-strategy" class="form-select">
-                    <option value="default" selected>Default (Buscar de todos em paralelo e aguardar)</option>
-                    <option value="fastest">Fastest (Retornar assim que os mais rápidos responderem)</option>
-                  </select>
-                </div>
-              </div>
+            <div class="import-form-row">
+              <input type="text" id="input-manifest-url" class="form-input" placeholder="https://.../manifest.json ou stremio://...">
+              <button class="btn btn-primary" id="btn-import-manifest">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Importar
+              </button>
             </div>
-
+            <div id="import-validation-msg" class="validation-feedback"></div>
           </div>
 
-          <!-- Subtab 2: MARKETPLACE -->
-          <div class="subtab-content" id="subtab-marketplace">
-            <div class="marketplace-grid" id="marketplace-grid">
-              <!-- Marketplace items pre-populated via app.js -->
+          <!-- Addons Search & Filter Bar -->
+          <div class="addons-filter-bar">
+            <div class="search-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" id="search-installed-addons" class="search-input" placeholder="Search addons...">
+            </div>
+            <div class="filter-chips">
+              <button class="chip active">All</button>
+              <button class="chip">Legendas</button>
+            </div>
+          </div>
+
+          <!-- Grouped Section: LEGENDAS -->
+          <div class="addons-section">
+            <div class="section-title-row">
+              <h3>LEGENDAS</h3>
+            </div>
+
+            <!-- List of Imported Addons -->
+            <div class="installed-addons-list" id="installed-addons-list">
+              <!-- Dynamically populated via app.js -->
+            </div>
+          </div>
+
+          <!-- Addon Fetching Strategy Footer -->
+          <div class="card card-strategy-footer">
+            <div class="strategy-row">
+              <div class="strategy-meta">
+                <h4>Addon Fetching Strategy</h4>
+                <p>Define como as requisições aos addons externos são sincronizadas</p>
+              </div>
+              <div class="strategy-select-wrap">
+                <select id="select-fetching-strategy" class="form-select">
+                  <option value="default" selected>Default (Buscar de todos em paralelo e aguardar)</option>
+                  <option value="fastest">Fastest (Retornar assim que os mais rápidos responderem)</option>
+                </select>
+              </div>
             </div>
           </div>
         </section>
 
         <!-- ===================================================================
-             PAGE 4: FILTERS (Languages, Remap, Deduplication, Priority, Timeout)
+             PAGE 4: FILTERS (Priority, Languages, Remap, Deduplication)
              =================================================================== -->
         <section class="page-view" id="page-filters">
           <div class="view-header">
@@ -573,9 +576,9 @@
                 <p>Remove legendas idênticas de fontes diferentes para evitar poluição visual na lista</p>
               </div>
               <div class="header-toggle">
-                <label class="switch">
+                <label class="compact-switch">
                   <input type="checkbox" id="toggle-deduplication" checked>
-                  <span class="slider"></span>
+                  <span class="compact-slider"></span>
                 </label>
               </div>
             </div>
@@ -590,13 +593,13 @@
             </div>
           </div>
 
-          <!-- 4. Provider & Addon Priority -->
+          <!-- 4. Prioridade dos Provedores e Addons (Apenas Ativos & Drag-and-drop) -->
           <div class="card">
             <div class="card-header">
               <div class="card-header-icon">📶</div>
               <div>
                 <h2>Prioridade dos Provedores e Addons</h2>
-                <p>Arraste ou use as setas para definir a ordem em que as legendas aparecem para o usuário</p>
+                <p>Arraste para definir a ordem de preferência. Apenas serviços e addons ativos aparecem aqui.</p>
               </div>
             </div>
 
@@ -629,7 +632,7 @@
           <div class="view-header">
             <div>
               <h1 class="view-title">Settings &amp; Installation</h1>
-              <p class="view-subtitle">Gere a URL final de manifest e configure opções do servidor</p>
+              <p class="view-subtitle">Gere a URL final de manifest e instale no seu player</p>
             </div>
           </div>
 
@@ -645,13 +648,13 @@
 
             <div class="install-buttons-row">
               <a href="#" id="link-install-stremio" class="btn btn-primary btn-large">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5 3 19 12 5 21 5 3"></polygon>
                 </svg>
                 Instalar no Stremio
               </a>
               <button class="btn btn-secondary btn-large" id="btn-open-nuvio-modal">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                   <line x1="12" y1="18" x2="12.01" y2="18"></line>
                 </svg>
@@ -702,6 +705,43 @@
        MODALS & DIALOGS
        =================================================================== -->
   
+  <!-- Configure Service Modal (AIOStreams style compact modal) -->
+  <div class="modal-backdrop" id="modal-service-config">
+    <div class="modal-card modal-compact">
+      <div class="modal-header">
+        <h3 id="modal-service-title">Configure Service</h3>
+        <button class="modal-close" id="btn-close-service-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="modal-service-id">
+        <div class="input-group">
+          <label for="modal-service-key-input">API Key</label>
+          <div class="api-key-input-wrapper">
+            <input type="password" id="modal-service-key-input" class="form-input" placeholder="Cole sua API Key aqui">
+            <button class="btn-toggle-eye" id="btn-modal-toggle-eye" title="Mostrar/Ocultar API Key" type="button">
+              <svg id="eye-icon-show" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg id="eye-icon-hide" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+            <div class="api-key-validation-indicator" id="modal-key-status" title=""></div>
+          </div>
+          <div class="field-hint" id="modal-service-hint">
+            <!-- Dynamically populated with official registration link -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-between">
+        <button class="btn btn-outline" id="btn-cancel-service-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-service-modal">Save</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Nuvio / QR Code Modal -->
   <div class="modal-backdrop" id="modal-nuvio">
     <div class="modal-card">

@@ -26,14 +26,19 @@ export class SubsourceProvider extends BaseSubtitleProvider {
   readonly id = 'subsource';
   readonly name = 'Subsource';
   readonly description = 'Community-driven high accuracy subtitles from Subsource';
-  readonly requiresApiKey = false;
+  readonly requiresApiKey = true;
   readonly defaultEnabled = true;
 
   protected async executeSearch(
     query: SubtitleQuery,
-    _context: ProviderContext,
+    context: ProviderContext,
     signal: AbortSignal
   ): Promise<RawSubtitleItem[]> {
+    const apiKey = context.providerConfig?.apiKey;
+    if (!apiKey) {
+      return [];
+    }
+
     if (!query.imdbId) {
       return [];
     }

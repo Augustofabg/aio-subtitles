@@ -1,6 +1,6 @@
 import { getAllProviders } from '../src/providers';
 import { GenericStremioAddonProvider } from '../src/providers/genericStremioAddon';
-import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../src/utils/normalizer';
+import { validateAndNormalizeLanguage } from '../src/utils/normalizer';
 import { RawSubtitleItem } from '../src/types/provider';
 import { getAggregatedSubtitles } from '../src/core/aggregator';
 import { DEFAULT_USER_CONFIG } from '../src/config/userConfig';
@@ -9,27 +9,33 @@ import { globalSubtitleCache } from '../src/utils/cache';
 
 console.log('🧪 Iniciando suíte de testes de validação do AIO Subtitles...\n');
 
-// 1. Bug 6.1: Validate all registered built-in providers
-console.log('--- Teste 1: Validação de Provedores Nativos e Bug do "Desconhecido" ---');
+// 1. Validate exactly 3 registered built-in providers: OpenSubtitles, SubDL, Subsource
+console.log('--- Teste 1: Validação de Provedores Nativos Definitivos ---');
 const providers = getAllProviders();
-if (providers.length === 0) {
-  console.error('❌ Nenhum provedor registrado!');
+const expectedIds = ['opensubtitles', 'subdl', 'subsource'];
+
+if (providers.length !== 3) {
+  console.error(`❌ Esperava exatamente 3 provedores nativos, encontrou ${providers.length}!`);
   process.exit(1);
 }
 
 for (const p of providers) {
-  if (!p.id || p.id.trim() === '') {
-    console.error(`❌ Provedor sem ID válido!`);
+  if (!expectedIds.includes(p.id)) {
+    console.error(`❌ Provedor não autorizado encontrado: [${p.id}] -> "${p.name}"`);
     process.exit(1);
   }
   if (!p.name || p.name.trim() === '' || p.name.toLowerCase() === 'desconhecido') {
     console.error(`❌ Provedor ${p.id} tem name inválido ou "Desconhecido": "${p.name}"`);
     process.exit(1);
   }
-  console.log(`  ✅ Provedor nativo verificado: [${p.id}] -> "${p.name}"`);
+  if (p.requiresApiKey !== true) {
+    console.error(`❌ Provedor ${p.id} deve ter requiresApiKey === true!`);
+    process.exit(1);
+  }
+  console.log(`  ✅ Provedor nativo verificado: [${p.id}] -> "${p.name}" (requiresApiKey: true)`);
 }
 
-// 2. Bug 6.1: Validate GenericStremioAddonProvider with custom imported manifests
+// 2. Validate GenericStremioAddonProvider with custom imported manifests
 console.log('\n--- Teste 2: Provedores Genéricos Importados por Manifest URL ---');
 const testCustomAddons = [
   { id: 'community-subtitles', name: 'Legendas Brasil VIP', url: 'https://subs.example.com/manifest.json' },
@@ -58,8 +64,8 @@ console.log('\n--- Teste 3: Integridade de Provedores e Itens de Legenda ---');
 const mockItems: RawSubtitleItem[] = [
   {
     id: 'test-1',
-    provider: 'opensubtitles-rest',
-    providerName: 'OpenSubtitles REST',
+    provider: 'opensubtitles',
+    providerName: 'OpenSubtitles',
     url: 'https://api.opensubtitles.com/download/sub1.srt',
     lang: 'pob',
     release: '1080p.BluRay-SPARKS'
@@ -82,8 +88,8 @@ for (const item of mockItems) {
   console.log(`  ✅ Item de legenda íntegro: [${item.provider}] lang=${item.lang} url=${item.url}`);
 }
 
-// 4. Bug 6.2: Test Language Normalization & Desconhecido category prevention
-console.log('\n--- Teste 4: Bug 6.2 - Prevenção de Categoria "Desconhecido" no Player ---');
+// 4. Test Language Normalization & Desconhecido category prevention
+console.log('\n--- Teste 4: Normalização de Idiomas & Prevenção de Categoria "Desconhecido" ---');
 const validLanguagesTest = ['pt-br', 'por', 'en', 'english', 'spa', 'pob', 'fre'];
 for (const raw of validLanguagesTest) {
   const result = validateAndNormalizeLanguage(raw, false);

@@ -6,20 +6,16 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
   instanceLogo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
   instanceVersion: 'v1.0.0',
   providers: {
-    'opensubtitles-v3': { enabled: true },
-    'opensubtitles-rest': { enabled: true, apiKey: '' },
+    'opensubtitles': { enabled: true, apiKey: '' },
     'subdl': { enabled: true, apiKey: '' },
-    'subsource': { enabled: true },
-    'addic7ed': { enabled: true }
+    'subsource': { enabled: true, apiKey: '' }
   },
   customAddons: [],
   addonFetchingStrategy: 'default',
   providerPriority: [
-    'opensubtitles-rest',
+    'opensubtitles',
     'subdl',
-    'opensubtitles-v3',
-    'subsource',
-    'addic7ed'
+    'subsource'
   ],
   languages: ['pob', 'por', 'eng'],
   allowUnknownLanguages: false,
@@ -105,6 +101,26 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
         }))
     : [];
 
+  // Migration for legacy providerPriority: map opensubtitles-rest / opensubtitles-v3 -> opensubtitles, remove addic7ed
+  let rawPriority: string[] = [];
+  if (Array.isArray(partial.providerPriority) && partial.providerPriority.length > 0) {
+    for (const item of partial.providerPriority) {
+      let mapped = item;
+      if (item === 'opensubtitles-rest' || item === 'opensubtitles-v3') {
+        mapped = 'opensubtitles';
+      }
+      if (mapped === 'addic7ed') {
+        continue;
+      }
+      if (!rawPriority.includes(mapped)) {
+        rawPriority.push(mapped);
+      }
+    }
+  }
+  if (rawPriority.length === 0) {
+    rawPriority = [...DEFAULT_USER_CONFIG.providerPriority];
+  }
+
   const result: UserConfig = {
     instanceName: typeof partial.instanceName === 'string' && partial.instanceName.trim() !== ''
       ? partial.instanceName.trim()
@@ -118,12 +134,14 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     instanceVersion: typeof partial.instanceVersion === 'string' && partial.instanceVersion.trim() !== ''
       ? partial.instanceVersion.trim()
       : DEFAULT_USER_CONFIG.instanceVersion,
-    providers: { ...DEFAULT_USER_CONFIG.providers },
+    providers: {
+      'opensubtitles': { enabled: true, apiKey: '' },
+      'subdl': { enabled: true, apiKey: '' },
+      'subsource': { enabled: true, apiKey: '' }
+    },
     customAddons,
     addonFetchingStrategy: partial.addonFetchingStrategy === 'fastest' ? 'fastest' : 'default',
-    providerPriority: Array.isArray(partial.providerPriority) && partial.providerPriority.length > 0
-      ? partial.providerPriority
-      : [...DEFAULT_USER_CONFIG.providerPriority],
+    providerPriority: rawPriority,
     languages: Array.isArray(partial.languages) && partial.languages.length > 0
       ? partial.languages.map(l => l.trim().toLowerCase())
       : [...DEFAULT_USER_CONFIG.languages],
@@ -147,13 +165,23 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       : DEFAULT_USER_CONFIG.cacheTtlMinutes
   };
 
-  // Merge individual providers
+  // Merge individual providers & perform backward-compatible migration
   if (partial.providers && typeof partial.providers === 'object') {
     for (const [key, val] of Object.entries(partial.providers)) {
-      if (val && typeof val === 'object') {
-        result.providers[key] = {
+      if (!val || typeof val !== 'object') continue;
+
+      let targetKey = key;
+      if (key === 'opensubtitles-rest' || key === 'opensubtitles-v3') {
+        targetKey = 'opensubtitles';
+      } else if (key === 'addic7ed') {
+        // Discard deprecated addic7ed
+        continue;
+      }
+
+      if (result.providers[targetKey]) {
+        result.providers[targetKey] = {
           enabled: typeof val.enabled === 'boolean' ? val.enabled : true,
-          apiKey: typeof val.apiKey === 'string' ? val.apiKey.trim() : undefined,
+          apiKey: typeof val.apiKey === 'string' ? val.apiKey.trim() : (result.providers[targetKey]?.apiKey || ''),
           username: typeof val.username === 'string' ? val.username.trim() : undefined,
           password: typeof val.password === 'string' ? val.password : undefined,
           customEndpoint: typeof val.customEndpoint === 'string' ? val.customEndpoint.trim() : undefined

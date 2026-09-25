@@ -29,10 +29,10 @@ interface OpenSubtitlesRestResponse {
   data: OpenSubtitlesRestItem[];
 }
 
-export class OpenSubtitlesRestProvider extends BaseSubtitleProvider {
-  readonly id = 'opensubtitles-rest';
-  readonly name = 'OpenSubtitles REST';
-  readonly description = 'Official OpenSubtitles.com REST API v1 (supports native language filtering & rich metadata)';
+export class OpenSubtitlesProvider extends BaseSubtitleProvider {
+  readonly id = 'opensubtitles';
+  readonly name = 'OpenSubtitles';
+  readonly description = 'Provedor oficial OpenSubtitles.com v1 com metadados completos e alta precisão';
   readonly requiresApiKey = true;
   readonly defaultEnabled = true;
 
@@ -43,7 +43,6 @@ export class OpenSubtitlesRestProvider extends BaseSubtitleProvider {
   ): Promise<RawSubtitleItem[]> {
     const apiKey = context.providerConfig?.apiKey || ENV.DEFAULT_OPENSUBTITLES_API_KEY;
     if (!apiKey) {
-      // If user hasn't configured an API key and no server default, gracefully return empty
       return [];
     }
 
@@ -96,14 +95,12 @@ export class OpenSubtitlesRestProvider extends BaseSubtitleProvider {
       const fileId = file.file_id;
       const fileName = file.file_name || attr.release || `${query.id}.srt`;
 
-      // OpenSubtitles REST allows downloading via their download API or public CDN
-      // We pass the file_id so our proxy or direct link can download cleanly
       const downloadProxyUrl = `/proxy/download/os-rest/${fileId}?filename=${encodeURIComponent(fileName)}&apiKey=${encodeURIComponent(apiKey)}`;
 
       items.push({
-        id: `osrest-${item.id || fileId}`,
+        id: `os-${item.id || fileId}`,
         provider: this.id,
-        providerName: 'OpenSubtitles REST',
+        providerName: 'OpenSubtitles',
         url: downloadProxyUrl,
         lang: attr.language || 'unknown',
         release: attr.release || fileName.replace(/\.(srt|vtt)$/i, ''),

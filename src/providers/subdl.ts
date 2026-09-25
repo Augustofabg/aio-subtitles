@@ -27,7 +27,7 @@ export class SubDLProvider extends BaseSubtitleProvider {
   readonly id = 'subdl';
   readonly name = 'SubDL';
   readonly description = 'High quality multilingual subtitles database from SubDL';
-  readonly requiresApiKey = false; // Works with API key or public query
+  readonly requiresApiKey = true;
   readonly defaultEnabled = true;
 
   protected async executeSearch(
@@ -35,11 +35,14 @@ export class SubDLProvider extends BaseSubtitleProvider {
     context: ProviderContext,
     signal: AbortSignal
   ): Promise<RawSubtitleItem[]> {
-    if (!query.imdbId) {
+    const apiKey = context.providerConfig?.apiKey || ENV.DEFAULT_SUBDL_API_KEY;
+    if (!apiKey) {
       return [];
     }
 
-    const apiKey = context.providerConfig?.apiKey || ENV.DEFAULT_SUBDL_API_KEY;
+    if (!query.imdbId) {
+      return [];
+    }
     const cleanImdb = query.imdbId.startsWith('tt') ? query.imdbId : `tt${query.imdbId}`;
 
     const params: Record<string, string | number> = {
