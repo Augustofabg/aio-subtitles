@@ -1,0 +1,332 @@
+export interface LanguageInfo {
+  code: string;       // Normalized 3-letter code (e.g. pob, por, eng)
+  iso639_1: string;   // 2-letter code (e.g. pt, en)
+  iso639_2: string;   // ISO 639-2 (T or B)
+  name: string;       // Display name in English
+  nativeName: string; // Native name
+  flag: string;       // Emoji flag
+  aliases: string[];  // Known aliases, variants, or provider codes
+}
+
+export const SUPPORTED_LANGUAGES: LanguageInfo[] = [
+  {
+    code: 'pob',
+    iso639_1: 'pt',
+    iso639_2: 'pob',
+    name: 'Portuguese (Brazil)',
+    nativeName: 'Português (Brasil)',
+    flag: '🇧🇷',
+    aliases: ['pt-br', 'ptbr', 'brazilian', 'brazilian portuguese', 'pob', 'pb']
+  },
+  {
+    code: 'por',
+    iso639_1: 'pt',
+    iso639_2: 'por',
+    name: 'Portuguese (Portugal)',
+    nativeName: 'Português (Portugal)',
+    flag: '🇵🇹',
+    aliases: ['pt-pt', 'ptpt', 'european portuguese', 'portuguese', 'por', 'pt']
+  },
+  {
+    code: 'eng',
+    iso639_1: 'en',
+    iso639_2: 'eng',
+    name: 'English',
+    nativeName: 'English',
+    flag: '🇺🇸',
+    aliases: ['en-us', 'en-gb', 'english', 'eng', 'en']
+  },
+  {
+    code: 'spa',
+    iso639_1: 'es',
+    iso639_2: 'spa',
+    name: 'Spanish',
+    nativeName: 'Español',
+    flag: '🇪🇸',
+    aliases: ['es-es', 'es-419', 'spanish', 'castilian', 'castellano', 'spa', 'es']
+  },
+  {
+    code: 'fra',
+    iso639_1: 'fr',
+    iso639_2: 'fra',
+    name: 'French',
+    nativeName: 'Français',
+    flag: '🇫🇷',
+    aliases: ['fr-fr', 'french', 'francais', 'fra', 'fre', 'fr']
+  },
+  {
+    code: 'deu',
+    iso639_1: 'de',
+    iso639_2: 'deu',
+    name: 'German',
+    nativeName: 'Deutsch',
+    flag: '🇩🇪',
+    aliases: ['de-de', 'german', 'deutsch', 'deu', 'ger', 'de']
+  },
+  {
+    code: 'ita',
+    iso639_1: 'it',
+    iso639_2: 'ita',
+    name: 'Italian',
+    nativeName: 'Italiano',
+    flag: '🇮🇹',
+    aliases: ['it-it', 'italian', 'italiano', 'ita', 'it']
+  },
+  {
+    code: 'jpn',
+    iso639_1: 'ja',
+    iso639_2: 'jpn',
+    name: 'Japanese',
+    nativeName: '日本語',
+    flag: '🇯🇵',
+    aliases: ['ja-jp', 'japanese', 'nihongo', 'jpn', 'ja']
+  },
+  {
+    code: 'kor',
+    iso639_1: 'ko',
+    iso639_2: 'kor',
+    name: 'Korean',
+    nativeName: '한국어',
+    flag: '🇰🇷',
+    aliases: ['ko-kr', 'korean', 'kor', 'ko']
+  },
+  {
+    code: 'zho',
+    iso639_1: 'zh',
+    iso639_2: 'zho',
+    name: 'Chinese',
+    nativeName: '中文',
+    flag: '🇨🇳',
+    aliases: ['zh-cn', 'zh-tw', 'chinese', 'mandarin', 'chi', 'zho', 'zh']
+  },
+  {
+    code: 'rus',
+    iso639_1: 'ru',
+    iso639_2: 'rus',
+    name: 'Russian',
+    nativeName: 'Русский',
+    flag: '🇷🇺',
+    aliases: ['ru-ru', 'russian', 'rus', 'ru']
+  },
+  {
+    code: 'ara',
+    iso639_1: 'ar',
+    iso639_2: 'ara',
+    name: 'Arabic',
+    nativeName: 'العربية',
+    flag: '🇸🇦',
+    aliases: ['arabic', 'ara', 'ar']
+  },
+  {
+    code: 'hin',
+    iso639_1: 'hi',
+    iso639_2: 'hin',
+    name: 'Hindi',
+    nativeName: 'हिन्दी',
+    flag: '🇮🇳',
+    aliases: ['hindi', 'hin', 'hi']
+  },
+  {
+    code: 'pol',
+    iso639_1: 'pl',
+    iso639_2: 'pol',
+    name: 'Polish',
+    nativeName: 'Polski',
+    flag: '🇵🇱',
+    aliases: ['polish', 'polski', 'pol', 'pl']
+  },
+  {
+    code: 'nld',
+    iso639_1: 'nl',
+    iso639_2: 'nld',
+    name: 'Dutch',
+    nativeName: 'Nederlands',
+    flag: '🇳🇱',
+    aliases: ['dutch', 'nederlands', 'nld', 'dut', 'nl']
+  },
+  {
+    code: 'tur',
+    iso639_1: 'tr',
+    iso639_2: 'tur',
+    name: 'Turkish',
+    nativeName: 'Türkçe',
+    flag: '🇹🇷',
+    aliases: ['turkish', 'turkce', 'tur', 'tr']
+  },
+  {
+    code: 'swe',
+    iso639_1: 'sv',
+    iso639_2: 'swe',
+    name: 'Swedish',
+    nativeName: 'Svenska',
+    flag: '🇸🇪',
+    aliases: ['swedish', 'svenska', 'swe', 'sv']
+  },
+  {
+    code: 'nor',
+    iso639_1: 'no',
+    iso639_2: 'nor',
+    name: 'Norwegian',
+    nativeName: 'Norsk',
+    flag: '🇳🇴',
+    aliases: ['norwegian', 'norsk', 'nor', 'no', 'nob', 'nno']
+  },
+  {
+    code: 'dan',
+    iso639_1: 'da',
+    iso639_2: 'dan',
+    name: 'Danish',
+    nativeName: 'Dansk',
+    flag: '🇩🇰',
+    aliases: ['danish', 'dansk', 'dan', 'da']
+  },
+  {
+    code: 'fin',
+    iso639_1: 'fi',
+    iso639_2: 'fin',
+    name: 'Finnish',
+    nativeName: 'Suomi',
+    flag: '🇫🇮',
+    aliases: ['finnish', 'suomi', 'fin', 'fi']
+  },
+  {
+    code: 'ell',
+    iso639_1: 'el',
+    iso639_2: 'ell',
+    name: 'Greek',
+    nativeName: 'Ελληνικά',
+    flag: '🇬🇷',
+    aliases: ['greek', 'ell', 'gre', 'el']
+  },
+  {
+    code: 'ces',
+    iso639_1: 'cs',
+    iso639_2: 'ces',
+    name: 'Czech',
+    nativeName: 'Čeština',
+    flag: '🇨🇿',
+    aliases: ['czech', 'ces', 'cze', 'cs']
+  },
+  {
+    code: 'hun',
+    iso639_1: 'hu',
+    iso639_2: 'hun',
+    name: 'Hungarian',
+    nativeName: 'Magyar',
+    flag: '🇭🇺',
+    aliases: ['hungarian', 'magyar', 'hun', 'hu']
+  },
+  {
+    code: 'ron',
+    iso639_1: 'ro',
+    iso639_2: 'ron',
+    name: 'Romanian',
+    nativeName: 'Română',
+    flag: '🇷🇴',
+    aliases: ['romanian', 'ron', 'rum', 'ro']
+  },
+  {
+    code: 'ukr',
+    iso639_1: 'uk',
+    iso639_2: 'ukr',
+    name: 'Ukrainian',
+    nativeName: 'Українська',
+    flag: '🇺🇦',
+    aliases: ['ukrainian', 'ukr', 'uk']
+  },
+  {
+    code: 'ind',
+    iso639_1: 'id',
+    iso639_2: 'ind',
+    name: 'Indonesian',
+    nativeName: 'Bahasa Indonesia',
+    flag: '🇮🇩',
+    aliases: ['indonesian', 'bahasa', 'ind', 'id']
+  },
+  {
+    code: 'vie',
+    iso639_1: 'vi',
+    iso639_2: 'vie',
+    name: 'Vietnamese',
+    nativeName: 'Tiếng Việt',
+    flag: '🇻🇳',
+    aliases: ['vietnamese', 'vie', 'vi']
+  },
+  {
+    code: 'tha',
+    iso639_1: 'th',
+    iso639_2: 'tha',
+    name: 'Thai',
+    nativeName: 'ไทย',
+    flag: '🇹🇭',
+    aliases: ['thai', 'tha', 'th']
+  },
+  {
+    code: 'heb',
+    iso639_1: 'he',
+    iso639_2: 'heb',
+    name: 'Hebrew',
+    nativeName: 'עברית',
+    flag: '🇮🇱',
+    aliases: ['hebrew', 'heb', 'he', 'iw']
+  }
+];
+
+// Pre-compute lookup table for fast O(1) matching
+const LOOKUP_MAP = new Map<string, LanguageInfo>();
+
+for (const lang of SUPPORTED_LANGUAGES) {
+  LOOKUP_MAP.set(lang.code.toLowerCase(), lang);
+  LOOKUP_MAP.set(lang.iso639_1.toLowerCase(), lang);
+  LOOKUP_MAP.set(lang.iso639_2.toLowerCase(), lang);
+  LOOKUP_MAP.set(lang.name.toLowerCase(), lang);
+  LOOKUP_MAP.set(lang.nativeName.toLowerCase(), lang);
+  for (const alias of lang.aliases) {
+    LOOKUP_MAP.set(alias.toLowerCase(), lang);
+  }
+}
+
+/**
+ * Normalizes any language string/code into a standard 3-letter ISO 639-2 code (e.g. 'pob', 'eng', 'spa').
+ * Returns the original trimmed lowercase string if no match is found.
+ */
+export function normalizeLanguageCode(raw: string | undefined | null): string {
+  if (!raw) return 'unknown';
+  const clean = raw.trim().toLowerCase().replace(/_/g, '-');
+  const found = LOOKUP_MAP.get(clean);
+  if (found) return found.code;
+  
+  // Try matching prefix if e.g. "pt-br-extra"
+  if (clean.includes('-')) {
+    const prefix = clean.split('-')[0];
+    const prefixFound = LOOKUP_MAP.get(prefix);
+    if (prefixFound) return prefixFound.code;
+  }
+  
+  return clean;
+}
+
+/**
+ * Returns LanguageInfo object for a given code/alias
+ */
+export function getLanguageInfo(raw: string | undefined | null): LanguageInfo | undefined {
+  if (!raw) return undefined;
+  const clean = raw.trim().toLowerCase().replace(/_/g, '-');
+  return LOOKUP_MAP.get(clean);
+}
+
+/**
+ * Returns flag emoji for a language code (defaults to 🌐)
+ */
+export function getLanguageFlag(raw: string | undefined | null): string {
+  const info = getLanguageInfo(raw);
+  return info ? info.flag : '🌐';
+}
+
+/**
+ * Returns English display name for a language code
+ */
+export function getLanguageDisplayName(raw: string | undefined | null): string {
+  const info = getLanguageInfo(raw);
+  return info ? info.name : (raw || 'Unknown');
+}

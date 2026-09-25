@@ -1,0 +1,121 @@
+import { BaseSubtitleProvider } from './base';
+import { SubtitleQuery, ProviderContext, RawSubtitleItem } from '../types/provider';
+import { ENV } from '../config/env';
+
+interface OpenSubtitlesRestItem {
+  id: string;
+  type: string;
+  attributes: {
+    subtitle_id: string;
+    language: string;
+    download_count: number;
+    hearing_impaired: boolean;
+    fps: number;
+    ratings: number;
+    release: string;
+    comments?: string;
+    url?: string;
+    files: Array<{
+      file_id: number;
+      cd_number: number;
+      file_name: string;
+    }>;
+  };
+}
+
+interface OpenSubtitlesRestResponse {
+  total_pages: number;
+  total_count: number;
+  data: OpenSubtitlesRestItem[];
+}
+
+export class OpenSubtitlesRestProvider extends BaseSubtitleProvider {
+  readonly id = 'opensubtitles-rest';
+  readonly name = 'OpenSubtitles REST';
+  readonly description = 'Official OpenSubtitles.com REST API v1 (supports native language filtering & rich metadata)';
+  readonly requiresApiKey = true;
+  readonly defaultEnabled = true;
+
+  protected async executeSearch(
+    query: SubtitleQuery,
+    context: ProviderContext,
+    signal: AbortSignal
+  ): Promise<RawSubtitleItem[]> {
+    const apiKey = context.providerConfig?.apiKey || ENV.DEFAULT_OPENSUBTITLES_API_KEY;
+    if (!apiKey) {
+      // If user hasn't configured an API key and no server default, gracefully return empty
+      return [];
+    }
+
+    if (!query.imdbId) {
+      return [];
+    }
+
+    const cleanImdb = query.imdbId.replace(/^tt/i, '');
+    const params: Record<string, string | number> = {
+      imdb_id: cleanImdb
+    };
+
+    if (query.season !== null && query.episode !== null) {
+      params.season_number = query.season;
+      params.episode_number = query.episode;
+      params.type = 'episode';
+    } else {
+      params.type = 'movie';
+    }
+
+    // Native language filter: convert whitelist into comma separated string
+    if (context.config.languages && context.config.languages.length > 0) {
+      params.languages = context.config.languages.join(',');
+    }
+
+    const response = await this.httpGet<OpenSubtitlesRestResponse>(
+      'https://api.opensubtitles.com/api/v1/subtitles',
+      {
+        params,
+        headers: {
+          'Api-Key': apiKey,
+          'User-Agent': 'AIOSubtitles v1.0.0'
+        },
+        timeout: 10000
+      },
+      signal
+    );
+
+    if (!response.data || !Array.isArray(response.data.data)) {
+      return [];
+    }
+
+    const items: RawSubtitleItem[] = [];
+
+    for (const item of response.data.data) {
+      const attr = item.attributes;
+      if (!attr || !attr.files || attr.files.length === 0) continue;
+
+      const file = attr.files[0];
+      const fileId = file.file_id;
+      const fileName = file.file_name || attr.release || `${query.id}.srt`;
+
+      // OpenSubtitles REST allows downloading via their download API or public CDN
+      // We pass the file_id so our proxy or direct link can download cleanly
+      const downloadProxyUrl = `/proxy/download/os-rest/${fileId}?filename=${encodeURIComponent(fileName)}&apiKey=${encodeURIComponent(apiKey)}`;
+
+      items.push({
+        id: `osrest-${item.id || fileId}`,
+        provider: this.id,
+        providerName: 'OpenSubtitles REST',
+        url: downloadProxyUrl,
+        lang: attr.language || 'unknown',
+        release: attr.release || fileName.replace(/\.(srt|vtt)$/i, ''),
+        format: fileName.toLowerCase().endsWith('.vtt') ? 'vtt' : 'srt',
+        hearingImpaired: Boolean(attr.hearing_impaired),
+        fps: attr.fps,
+        rating: attr.ratings,
+        downloads: attr.download_count,
+        rawMetadata: { fileId, attributes: attr }
+      });
+    }
+
+    return items;
+  }
+}
