@@ -2016,15 +2016,27 @@ function setupFormatterActions() {
 
   document.getElementById('btn-save-formatter')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-save-formatter');
+    const nameInput = document.getElementById('formatter-name-template');
+    const descInput = document.getElementById('formatter-desc-template');
+
+    if (!state.config.formatter) {
+      state.config.formatter = { preset: 'clean', nameTemplate: '{sub.lang}', descriptionTemplate: '' };
+    }
+    if (nameInput) state.config.formatter.nameTemplate = nameInput.value;
+    if (descInput) state.config.formatter.descriptionTemplate = descInput.value;
+
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Saving...';
     }
     try {
-      await saveConfigurationExplicit(false);
-      showToast('Formatter settings saved and applied!');
+      const ok = await saveCurrentConfiguration(false);
+      if (ok) {
+        showToast('Formatter settings saved and applied!');
+      }
     } catch (e) {
       console.error(e);
+      showToast('Error saving formatter settings.');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -2295,7 +2307,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     showMissingCredentialsBanner(missingCreds);
     showToast('Some enabled services are missing credentials.');
     navigateToPage('services');
-    return;
+    return false;
   }
 
   hideMissingCredentialsBanner();
@@ -2303,7 +2315,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
   if (!state.isConfigCreated || !state.uuid || !isUuid(state.uuid)) {
     showToast('Set a password in the Install step to create and save your configuration.');
     navigateToPage('install');
-    return;
+    return false;
   }
 
   if (!state.password && state.uuid) {
@@ -2322,7 +2334,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     navigateToPage('install');
     const passInput = document.getElementById('input-user-password');
     if (passInput) passInput.focus();
-    return;
+    return false;
   }
 
   const saveBtn = document.getElementById('btn-explicit-save');
@@ -2352,7 +2364,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
       const errMsg = data.error || `Server error (${res.status}): Could not save configuration.`;
       console.error('[Save Error]', res.status, errMsg);
       showToast(errMsg);
-      return;
+      return false;
     }
 
     state.isConfigCreated = true;
@@ -2369,6 +2381,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
       navigateToPage('install');
     }
     showToast('Configuration saved successfully!');
+    return true;
   } catch (err) {
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -2376,6 +2389,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     }
     console.error('[Save Network Error]', err);
     showToast('Connection error while saving configuration.');
+    return false;
   }
 }
 
