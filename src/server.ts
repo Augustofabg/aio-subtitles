@@ -8,7 +8,7 @@ import QRCode from 'qrcode';
 
 import { ENV } from './config/env';
 import { StremioManifest } from './types/stremio';
-import { decodeUserConfig } from './config/userConfig';
+import { decodeUserConfig, decodeUserConfigAsync } from './config/userConfig';
 import { parseSubtitleQuery, getAggregatedSubtitles } from './core/aggregator';
 import { handleSubtitleProxy, handleOpenSubtitlesRestDownload, handleShortIdDownload } from './proxy/subtitleProxy';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
@@ -19,6 +19,10 @@ import { configStorage, isUuid } from './storage/configStore';
 
 export function createServer(): express.Application {
   const app = express();
+
+  configStorage.initialize().catch(err => {
+    Logger.error('Async storage initialization error:', err);
+  });
 
   app.use(cors());
   app.use(express.json());
@@ -42,7 +46,7 @@ export function createServer(): express.Application {
     return `${protocol}://${host}`;
   };
 
-  const buildManifest = (configEncoded?: string): StremioManifest => {
+  const buildManifest = async (configEncoded?: string): Promise<StremioManifest> => {
     let name = 'AIOSubs';
     let description = 'Dedicated subtitle aggregator and organizer for Stremio and Nuvio.';
     let logo = '/assets/AIOsubs_logo_wordmark.png';
@@ -50,7 +54,7 @@ export function createServer(): express.Application {
 
     if (configEncoded) {
       try {
-        const userCfg = decodeUserConfig(configEncoded);
+        const userCfg = await decodeUserConfigAsync(configEncoded);
         if (userCfg.instanceName && userCfg.instanceName.trim() !== '') {
           name = userCfg.instanceName.trim();
         }
@@ -312,7 +316,7 @@ export function createServer(): express.Application {
     res.status(400).json({ valid: false, error: 'Serviço desconhecido' });
   });
 
-  app.post('/api/config/save', (req: Request, res: Response): void => {
+  const handleConfigSave = async (req: Request, res: Response): Promise<void> => {
     const uuid = String(req.body?.uuid || '').trim();
     const password = String(req.body?.password || '').trim();
     const config = req.body?.config;
@@ -332,7 +336,7 @@ export function createServer(): express.Application {
       return;
     }
 
-    const saveResult = configStorage.saveConfig(uuid, password, config);
+    const saveResult = await configStorage.saveConfigAsync(uuid, password, config);
     if (!saveResult.success) {
       res.status(401).json({ success: false, error: saveResult.error || 'Não foi possível salvar a configuração.' });
       return;
@@ -351,9 +355,14 @@ export function createServer(): express.Application {
       stremioUrl,
       stremioWebUrl
     });
-  });
+  };
 
-  app.post('/api/config/load', (req: Request, res: Response): void => {
+  app.post('/api/config/save', handleConfigSave);
+  app.post('/api/config/create', handleConfigSave);
+  app.post('/save', handleConfigSave);
+  app.post('/create', handleConfigSave);
+
+  const handleConfigLoad = async (req: Request, res: Response): Promise<void> => {
     const uuid = String(req.body?.uuid || '').trim();
     const password = String(req.body?.password || '').trim();
 
@@ -362,7 +371,7 @@ export function createServer(): express.Application {
       return;
     }
 
-    const authResult = configStorage.authenticateAndGetConfig(uuid, password);
+    const authResult = await configStorage.authenticateAndGetConfigAsync(uuid, password);
     if (!authResult.success || !authResult.config) {
       res.status(401).json({ success: false, error: 'UUID ou senha inválidos.' });
       return;
@@ -373,7 +382,11 @@ export function createServer(): express.Application {
       uuid,
       config: authResult.config
     });
-  });
+  };
+
+  app.post('/api/config/load', handleConfigLoad);
+  app.post('/api/config/login', handleConfigLoad);
+  app.post('/login', handleConfigLoad);
 
   app.get('/', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, 'index.html'));
@@ -391,18 +404,18 @@ export function createServer(): express.Application {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 
-  app.get('/manifest.json', (_req: Request, res: Response) => {
-    res.json(buildManifest());
+  app.get('/manifest.json', async (_req: Request, res: Response) => {
+    res.json(await buildManifest());
   });
 
-  app.get('/:config/manifest.json', (req: Request, res: Response) => {
-    res.json(buildManifest(req.params.config));
+  app.get('/:config/manifest.json', async (req: Request, res: Response) => {
+    res.json(await buildManifest(req.params.config));
   });
 
   const handleSubtitles = async (req: Request, res: Response): Promise<void> => {
     try {
       const configParam = req.params.config;
-      const userConfig = decodeUserConfig(configParam);
+      const userConfig = await decodeUserConfigAsync(configParam);
       const { type, id } = req.params;
       const baseUrl = getBaseUrl(req);
 

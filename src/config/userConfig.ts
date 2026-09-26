@@ -79,6 +79,21 @@ export function decodeUserConfig(encodedStr?: string | null): UserConfig {
   }
 }
 
+export async function decodeUserConfigAsync(encodedStr?: string | null): Promise<UserConfig> {
+  if (!encodedStr || encodedStr.trim() === '' || encodedStr === 'default') {
+    return { ...DEFAULT_USER_CONFIG };
+  }
+
+  if (isUuid(encodedStr)) {
+    const stored = await configStorage.getConfigByUuidAsync(encodedStr);
+    if (stored) {
+      return mergeWithDefaults(stored);
+    }
+  }
+
+  return decodeUserConfig(encodedStr);
+}
+
 export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
   const customAddons: CustomAddonConfig[] = Array.isArray(partial.customAddons)
     ? partial.customAddons

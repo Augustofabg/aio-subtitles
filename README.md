@@ -124,6 +124,19 @@ docker run -d -p 7000:7000 --name aio-subtitles aio-subtitles
 docker compose up -d
 ```
 
+### 4. Deploy no Render / Plataformas Cloud (Persistência com PostgreSQL)
+
+No Render (e plataformas como Neon, Supabase ou Railway), o sistema de arquivos padrão de contêineres é efémero (ephemeral). Para garantir que suas contas, UUIDs e configurações nunca sejam perdidos após reinicializações ou novos deploys:
+
+1. No painel do Render, crie um **PostgreSQL** gerenciado gratuito (ou crie no **Neon** / **Supabase**).
+2. Na sua aplicação Web Service no Render, configure a variável de ambiente:
+   * `DATABASE_URL`: URL de conexão fornecida pelo PostgreSQL (ex: `postgres://user:password@host/dbname?sslmode=require`)
+3. O AIOSubs detecta automaticamente o `DATABASE_URL`:
+   * Cria a tabela `configurations` com colunas `uuid`, `password_hash` (bcrypt), `config_data` (JSONB) e timestamps.
+   * Mantém um cache ultra-rápido em memória e sincronização assíncrona com o banco.
+   * Migra automaticamente qualquer dado local existente sem perda.
+4. Se `DATABASE_URL` não for definido (ex: desenvolvimento local), a aplicação usa automaticamente o armazenamento local em arquivo JSON (`./data/configurations.json`).
+
 ---
 
 ## 📄 Licença

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-assets.js",
-    "test": "tsx test/providerValidation.test.ts",
+    "test": "tsx test/providerValidation.test.ts && tsx test/persistenceStorage.test.ts",
+    "test:providers": "tsx test/providerValidation.test.ts",
+    "test:persistence": "tsx test/persistenceStorage.test.ts",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit"
   },
@@ -32,6 +34,7 @@
     "express-rate-limit": "^7.5.0",
     "iconv-lite": "^0.6.3",
     "lru-cache": "^11.0.2",
+    "pg": "^8.23.0",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {
@@ -41,6 +44,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^22.13.4",
+    "@types/pg": "^8.23.1",
     "@types/qrcode": "^1.5.6",
     "simple-icons": "^16.32.0",
     "tsx": "^4.19.2",
