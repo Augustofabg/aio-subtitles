@@ -29,15 +29,13 @@
 
 </div>
 
-<br>
+## O que é o AIOSubs?
 
-Se você já usou Stremio ou Nuvio por muito tempo, conhece o problema: legendas espalhadas em addons diferentes, idiomas duplicados, abas "Unknown" quebradas e aquela sensação de nunca ter a legenda certa na hora certa.
+O AIOSubs foi criado pra te dar controle total sobre as legendas do seu Stremio ou Nuvio. Em vez de lidar com vários addons de legenda, cada um com sua própria configuração e limitação, o AIOSubs funciona como um hub central. Ele busca resultados de todas as suas fontes configuradas, depois deduplica, filtra, remapeia idiomas e formata tudo de acordo com suas regras, entregando uma única lista limpa dentro do player.
 
-O **AIOSubs** existe pra resolver exatamente isso. Não é só mais um addon de legendas — é um hub que **unifica, filtra, deduplica e sincroniza** legendas de várias fontes ao mesmo tempo, entregando tudo já limpo dentro do player.
+Seja você um usuário casual que só quer uma lista de legendas organizada, ou alguém que gosta de ajustar cada detalhe, o AIOSubs se adapta.
 
-A interface de configuração segue a estética dark com toques em roxo consagrada pelo **AIOStreams**. Se você já usa o AIOStreams, o fluxo vai parecer familiar.
-
-<br>
+A interface de configuração segue a mesma estética dark com toques em roxo consagrada pelo **AIOStreams** — se você já usa o AIOStreams, o fluxo vai parecer familiar.
 
 ## Índice
 
