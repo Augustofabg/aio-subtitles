@@ -29,6 +29,7 @@ export interface StremioSubtitle {
   // Optional extra fields recognized by some players (like Nuvio or Web)
   file?: string;
   title?: string;
+  description?: string;
 }
 
 export interface StremioSubtitlesResponse {

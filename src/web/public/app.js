@@ -50,7 +50,12 @@ const DEFAULT_CONFIG = {
   providerTimeoutMs: 6000,
   deduplication: true,
   deduplicationStrategy: 'both',
-  cacheTtlMinutes: 30
+  cacheTtlMinutes: 30,
+  formatter: {
+    preset: 'clean',
+    nameTemplate: '{sub.lang}',
+    descriptionTemplate: ''
+  }
 };
 
 const SERVICES_META = {
@@ -96,7 +101,7 @@ const FALLBACK_LANGUAGES = [
   { code: 'heb', name: 'Hebrew' }
 ];
 
-const PAGES_ORDER = ['home', 'services', 'addons', 'filters', 'install'];
+const PAGES_ORDER = ['home', 'services', 'addons', 'filters', 'formatter', 'install'];
 
 const state = {
   activeView: 'landing', // 'landing' | 'wizard'
@@ -214,6 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupServicesActions();
   setupAddonsActions();
   setupFiltersActions();
+  setupFormatterActions();
   setupInstallPageActions();
   setupModals();
   setupDashboardLoginModal();
@@ -453,6 +459,14 @@ function applyConfigWithMigration(parsed) {
     merged.addonFetchingStrategy = parsed.addonFetchingStrategy;
   }
 
+  if (parsed.formatter && typeof parsed.formatter === 'object') {
+    merged.formatter = {
+      preset: parsed.formatter.preset || 'clean',
+      nameTemplate: typeof parsed.formatter.nameTemplate === 'string' ? parsed.formatter.nameTemplate : '{sub.lang}',
+      descriptionTemplate: typeof parsed.formatter.descriptionTemplate === 'string' ? parsed.formatter.descriptionTemplate : ''
+    };
+  }
+
   state.config = merged;
 }
 
@@ -558,6 +572,8 @@ function activatePageView(targetView, pageId) {
 
   if (pageId === 'filters') {
     switchFilterTab(state.activeFilterTab || 'whitelist');
+  } else if (pageId === 'formatter') {
+    renderFormatterState();
   } else if (pageId === 'install') {
     renderInstallPageDetails();
   }
@@ -1789,6 +1805,216 @@ function syncConnectorTimeout(newVal) {
   notifyConfigChanged();
 }
 
+let lastFocusedTemplateInput = null;
+
+function interpolatePreview(template, vars) {
+  if (!template || typeof template !== 'string') return '';
+  let output = template;
+  for (const [key, value] of Object.entries(vars)) {
+    const regex = new RegExp(`\\{${key.replace('.', '\\.')}\\}`, 'gi');
+    output = output.replace(regex, value);
+  }
+  output = output.replace(/\{[a-zA-Z0-9_.]+\}/g, '');
+  output = output
+    .replace(/\s+([•|\-–/])\s+([•|\-–/])/g, ' $1')
+    .replace(/^[\s•|\-–/]+|[\s•|\-–/]+$/g, '')
+    .trim();
+  return output;
+}
+
+function updateFormatterPreview() {
+  const sampleVars = {
+    'addon.name': 'AIOSubs',
+    'sub.lang': 'Português (Brasil)',
+    'sub.filename': 'Inception.2010.1080p.BluRay.x264.srt',
+    'sub.fps': '23.976 fps',
+    'sub.format': 'SRT',
+    'sub.delay': '0ms'
+  };
+
+  const nameInput = document.getElementById('formatter-name-template');
+  const descInput = document.getElementById('formatter-desc-template');
+  const nameTpl = nameInput ? nameInput.value : (state.config.formatter?.nameTemplate || '{sub.lang}');
+  const descTpl = descInput ? descInput.value : (state.config.formatter?.descriptionTemplate || '');
+
+  const renderedTitle = interpolatePreview(nameTpl, sampleVars) || 'Português (Brasil)';
+  const renderedDesc = interpolatePreview(descTpl, sampleVars);
+
+  const titleEl = document.getElementById('preview-sim-title');
+  const descEl = document.getElementById('preview-sim-desc');
+  const badgeEl = document.getElementById('preview-sim-badge');
+
+  if (titleEl) titleEl.textContent = renderedTitle;
+
+  if (descEl) {
+    if (renderedDesc && renderedDesc.trim() !== '') {
+      descEl.textContent = renderedDesc.trim();
+      descEl.style.display = 'block';
+      if (badgeEl) {
+        badgeEl.textContent = 'Detailed / Formatted';
+        badgeEl.className = 'sim-detailed-badge';
+      }
+    } else {
+      descEl.textContent = '';
+      descEl.style.display = 'none';
+      if (badgeEl) {
+        badgeEl.textContent = 'Clean (No Technical IDs)';
+        badgeEl.className = 'sim-clean-badge';
+      }
+    }
+  }
+}
+
+function renderFormatterState() {
+  if (!state.config.formatter) {
+    state.config.formatter = {
+      preset: 'clean',
+      nameTemplate: '{sub.lang}',
+      descriptionTemplate: ''
+    };
+  }
+
+  const nameInput = document.getElementById('formatter-name-template');
+  const descInput = document.getElementById('formatter-desc-template');
+
+  if (nameInput && document.activeElement !== nameInput) {
+    nameInput.value = state.config.formatter.nameTemplate ?? '{sub.lang}';
+  }
+
+  if (descInput && document.activeElement !== descInput) {
+    descInput.value = state.config.formatter.descriptionTemplate ?? '';
+  }
+
+  const preset = state.config.formatter.preset || 'clean';
+  ['clean', 'detailed', 'custom'].forEach(p => {
+    const btn = document.getElementById(`btn-preset-${p}`);
+    if (btn) btn.classList.toggle('active', p === preset);
+  });
+
+  updateFormatterPreview();
+}
+
+function setupFormatterActions() {
+  const nameInput = document.getElementById('formatter-name-template');
+  const descInput = document.getElementById('formatter-desc-template');
+
+  lastFocusedTemplateInput = descInput || nameInput;
+
+  nameInput?.addEventListener('focus', () => { lastFocusedTemplateInput = nameInput; });
+  descInput?.addEventListener('focus', () => { lastFocusedTemplateInput = descInput; });
+
+  const onTemplateInput = () => {
+    if (!state.config.formatter) state.config.formatter = { preset: 'custom', nameTemplate: '', descriptionTemplate: '' };
+    state.config.formatter.nameTemplate = nameInput ? nameInput.value : '{sub.lang}';
+    state.config.formatter.descriptionTemplate = descInput ? descInput.value : '';
+
+    if (state.config.formatter.nameTemplate === '{sub.lang}' && state.config.formatter.descriptionTemplate === '') {
+      state.config.formatter.preset = 'clean';
+    } else if (state.config.formatter.nameTemplate === '{sub.lang}' && state.config.formatter.descriptionTemplate === '{addon.name} • {sub.format}') {
+      state.config.formatter.preset = 'detailed';
+    } else {
+      state.config.formatter.preset = 'custom';
+    }
+
+    ['clean', 'detailed', 'custom'].forEach(p => {
+      const btn = document.getElementById(`btn-preset-${p}`);
+      if (btn) btn.classList.toggle('active', p === state.config.formatter.preset);
+    });
+
+    updateFormatterPreview();
+    notifyConfigChanged();
+  };
+
+  nameInput?.addEventListener('input', onTemplateInput);
+  descInput?.addEventListener('input', onTemplateInput);
+
+  // Preset buttons
+  document.getElementById('btn-preset-clean')?.addEventListener('click', () => {
+    if (!state.config.formatter) state.config.formatter = { preset: 'clean', nameTemplate: '', descriptionTemplate: '' };
+    state.config.formatter.preset = 'clean';
+    state.config.formatter.nameTemplate = '{sub.lang}';
+    state.config.formatter.descriptionTemplate = '';
+
+    if (nameInput) nameInput.value = '{sub.lang}';
+    if (descInput) descInput.value = '';
+
+    ['clean', 'detailed', 'custom'].forEach(p => {
+      const btn = document.getElementById(`btn-preset-${p}`);
+      if (btn) btn.classList.toggle('active', p === 'clean');
+    });
+
+    updateFormatterPreview();
+    notifyConfigChanged();
+    showToast('Clean preset: technical IDs removed.');
+  });
+
+  document.getElementById('btn-preset-detailed')?.addEventListener('click', () => {
+    if (!state.config.formatter) state.config.formatter = { preset: 'detailed', nameTemplate: '', descriptionTemplate: '' };
+    state.config.formatter.preset = 'detailed';
+    state.config.formatter.nameTemplate = '{sub.lang}';
+    state.config.formatter.descriptionTemplate = '{addon.name} • {sub.format}';
+
+    if (nameInput) nameInput.value = '{sub.lang}';
+    if (descInput) descInput.value = '{addon.name} • {sub.format}';
+
+    ['clean', 'detailed', 'custom'].forEach(p => {
+      const btn = document.getElementById(`btn-preset-${p}`);
+      if (btn) btn.classList.toggle('active', p === 'detailed');
+    });
+
+    updateFormatterPreview();
+    notifyConfigChanged();
+    showToast('Detailed preset selected.');
+  });
+
+  document.getElementById('btn-preset-custom')?.addEventListener('click', () => {
+    if (!state.config.formatter) state.config.formatter = { preset: 'custom', nameTemplate: '{sub.lang}', descriptionTemplate: '' };
+    state.config.formatter.preset = 'custom';
+
+    ['clean', 'detailed', 'custom'].forEach(p => {
+      const btn = document.getElementById(`btn-preset-${p}`);
+      if (btn) btn.classList.toggle('active', p === 'custom');
+    });
+
+    notifyConfigChanged();
+    if (descInput) descInput.focus();
+  });
+
+  // Snippets Drawer toggle
+  const toggleBtn = document.getElementById('btn-toggle-snippets');
+  const drawer = document.getElementById('snippets-popover');
+
+  toggleBtn?.addEventListener('click', () => {
+    if (!drawer) return;
+    const isHidden = drawer.style.display === 'none' || !drawer.style.display;
+    drawer.style.display = isHidden ? 'block' : 'none';
+    toggleBtn.classList.toggle('active', isHidden);
+    toggleBtn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  });
+
+  // Snippet chips click to insert
+  document.querySelectorAll('.snippet-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const snippet = chip.getAttribute('data-snippet');
+      if (!snippet) return;
+
+      const target = lastFocusedTemplateInput || descInput || nameInput;
+      if (!target) return;
+
+      const start = target.selectionStart ?? target.value.length;
+      const end = target.selectionEnd ?? target.value.length;
+      const val = target.value;
+
+      target.value = val.substring(0, start) + snippet + val.substring(end);
+      target.selectionStart = target.selectionEnd = start + snippet.length;
+      target.focus();
+      target.dispatchEvent(new Event('input'));
+
+      showToast(`Inserted ${snippet}`);
+    });
+  });
+}
+
 function setupInstallPageActions() {
     document.getElementById('btn-export-backup')?.addEventListener('click', () => {
     const backupData = {
@@ -2511,6 +2737,7 @@ function renderAll() {
   renderLanguageChips();
   renderRemapTable();
   renderFiltersPriority();
+  renderFormatterState();
   renderInstallPageDetails();
   updateStats();
 }

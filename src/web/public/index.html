@@ -80,6 +80,13 @@
           <span class="nav-label">Filters</span>
         </button>
 
+        <button class="nav-item" data-page="formatter" title="Formatter">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3,5H21V7H3V5M3,9H15V11H3V9M3,13H21V15H3V13M3,17H15V19H3V17Z" />
+          </svg>
+          <span class="nav-label">Formatter</span>
+        </button>
+
         <button class="nav-item" data-page="install" title="Install Addon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
@@ -692,7 +699,156 @@
           </div>
         </section>
 
-        <!-- Page 5: Install -->
+        <!-- Page 5: Formatter -->
+        <section class="page-view" id="page-formatter">
+          <div class="view-header">
+            <div>
+              <h1 class="view-title">Formatter</h1>
+              <p class="view-subtitle">Format your subtitles to your liking.</p>
+            </div>
+          </div>
+
+          <!-- SECTION 1: FORMATTER SELECTION -->
+          <div class="formatter-section-group">
+            <div class="section-badge-header">FORMATTER SELECTION</div>
+            <p class="section-desc-subtle">Choose a preset or customize how subtitles and descriptions appear in your player.</p>
+
+            <div class="card card-formatter-selection">
+              <div class="formatter-presets-toolbar">
+                <div class="formatter-preset-buttons" role="radiogroup" aria-label="Formatter Presets">
+                  <button type="button" class="preset-btn active" id="btn-preset-clean" data-preset="clean">
+                    <span class="preset-title">Clean / Default</span>
+                    <span class="preset-sub">Removes technical ID lines</span>
+                  </button>
+                  <button type="button" class="preset-btn" id="btn-preset-detailed" data-preset="detailed">
+                    <span class="preset-title">Detailed</span>
+                    <span class="preset-sub">Addon name &amp; metadata</span>
+                  </button>
+                  <button type="button" class="preset-btn" id="btn-preset-custom" data-preset="custom">
+                    <span class="preset-title">Custom</span>
+                    <span class="preset-sub">Full manual control</span>
+                  </button>
+                </div>
+
+                <div class="formatter-snippets-action">
+                  <button type="button" class="btn btn-secondary btn-snippets" id="btn-toggle-snippets" aria-expanded="false" aria-controls="snippets-popover">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M14.6,16.6L19.2,12L14.6,7.4L16,6L22,12L16,18L14.6,16.6M9.4,16.6L4.8,12L9.4,7.4L8,6L2,12L8,18L9.4,16.6Z" />
+                    </svg>
+                    <span>Snippets</span>
+                    <svg class="chevron-snippets" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M7.41,8.58L12,13.17L16.59,8.58L18,10L12,16L6,10L7.41,8.58Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Collapsible Snippets Drawer / Popover -->
+              <div class="snippets-drawer" id="snippets-popover" style="display: none;">
+                <div class="snippets-drawer-header">
+                  <span class="snippets-drawer-title">Available Variables</span>
+                  <span class="snippets-drawer-desc">Click any variable below to insert it into the active template field:</span>
+                </div>
+                <div class="snippets-grid">
+                  <button type="button" class="snippet-chip" data-snippet="{addon.name}">
+                    <code class="snippet-tag">{addon.name}</code>
+                    <span class="snippet-label">Addon / Provider name</span>
+                  </button>
+                  <button type="button" class="snippet-chip" data-snippet="{sub.lang}">
+                    <code class="snippet-tag">{sub.lang}</code>
+                    <span class="snippet-label">Language name (e.g. Português)</span>
+                  </button>
+                  <button type="button" class="snippet-chip" data-snippet="{sub.filename}">
+                    <code class="snippet-tag">{sub.filename}</code>
+                    <span class="snippet-label">Subtitle release or file name</span>
+                  </button>
+                  <button type="button" class="snippet-chip" data-snippet="{sub.fps}">
+                    <code class="snippet-tag">{sub.fps}</code>
+                    <span class="snippet-label">Framerate (e.g. 23.976 fps)</span>
+                  </button>
+                  <button type="button" class="snippet-chip" data-snippet="{sub.format}">
+                    <code class="snippet-tag">{sub.format}</code>
+                    <span class="snippet-label">Format (SRT, VTT)</span>
+                  </button>
+                  <button type="button" class="snippet-chip" data-snippet="{sub.delay}">
+                    <code class="snippet-tag">{sub.delay}</code>
+                    <span class="snippet-label">Sync delay</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: TEMPLATE CONFIGURATION -->
+          <div class="formatter-section-group">
+            <div class="section-badge-header">TEMPLATE CONFIGURATION</div>
+            <p class="section-desc-subtle">Configure the main title and secondary description. Leave the Description Template empty to clean all technical strings from Nuvio.</p>
+
+            <div class="card card-formatter-templates">
+              <!-- Name Template Field -->
+              <div class="formatter-field-group">
+                <div class="formatter-field-header">
+                  <label for="formatter-name-template" class="formatter-label">Name Template</label>
+                  <span class="formatter-field-sub">Format of the main subtitle title in player</span>
+                </div>
+                <div class="code-box-wrapper">
+                  <textarea id="formatter-name-template" class="code-textarea" rows="2" spellcheck="false" placeholder="{sub.lang}">{sub.lang}</textarea>
+                </div>
+              </div>
+
+              <!-- Description Template Field -->
+              <div class="formatter-field-group" style="margin-top: 18px;">
+                <div class="formatter-field-header">
+                  <label for="formatter-desc-template" class="formatter-label">Description Template</label>
+                  <span class="formatter-field-sub">Secondary description text. Leave completely blank to wipe technical IDs like com.community... from Nuvio.</span>
+                </div>
+                <div class="code-box-wrapper">
+                  <textarea id="formatter-desc-template" class="code-textarea" rows="3" spellcheck="false" placeholder="Leave empty for clean language only, or e.g. {addon.name} • {sub.format}"></textarea>
+                </div>
+                <div class="formatter-help-tip">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z" />
+                  </svg>
+                  <span>When empty, AIOSubs completely suppresses the secondary description field and purges community package identifiers from the subtitle stream.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: PREVIEW -->
+          <div class="formatter-section-group">
+            <div class="section-badge-header">PREVIEW</div>
+            <p class="section-desc-subtle">See how your subtitles will appear in the player based on current templates</p>
+
+            <div class="card card-formatter-preview">
+              <div class="player-simulation-frame">
+                <div class="player-sim-header">
+                  <div class="sim-dot"></div>
+                  <div class="sim-dot"></div>
+                  <div class="sim-dot"></div>
+                  <span class="sim-title">Player Subtitle Track Simulation (Nuvio / Stremio)</span>
+                </div>
+
+                <div class="sim-track-item">
+                  <div class="sim-track-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19,4H5A2,2 0 0,0 3,6V18A2,2 0 0,0 5,20H19A2,2 0 0,0 21,18V6A2,2 0 0,0 19,4M11,11H8.5V10.5H6.5V13.5H8.5V13H11V14A1,1 0 0,1 10,15H6A1,1 0 0,1 5,14V10A1,1 0 0,1 6,9H10A1,1 0 0,1 11,10V11M19,11H16.5V10.5H14.5V13.5H16.5V13H19V14A1,1 0 0,1 18,15H14A1,1 0 0,1 13,14V10A1,1 0 0,1 14,9H18A1,1 0 0,1 19,10V11Z" />
+                    </svg>
+                  </div>
+                  <div class="sim-track-content">
+                    <div class="sim-track-primary" id="preview-sim-title">Português (Brasil)</div>
+                    <div class="sim-track-secondary" id="preview-sim-desc" style="display: none;"></div>
+                  </div>
+                  <div class="sim-track-meta">
+                    <span class="sim-clean-badge" id="preview-sim-badge">Clean (No Technical IDs)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Page 6: Install -->
         <section class="page-view" id="page-install">
           <div class="view-header">
             <div>
