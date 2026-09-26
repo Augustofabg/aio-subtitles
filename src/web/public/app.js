@@ -1794,7 +1794,7 @@ function setupInstallPageActions() {
 
     if (pass.length < 4) {
       if (errBox) {
-        errBox.textContent = 'A senha deve ter pelo menos 4 caracteres.';
+        errBox.textContent = 'Password must be at least 4 characters.';
         errBox.style.display = 'block';
       }
       return;
@@ -1861,7 +1861,7 @@ function setupInstallPageActions() {
       }
 
       window.history.replaceState(null, '', `/${state.uuid}/configure`);
-      renderInstallPageDetails();
+      renderInstallPageDetails(true);
       showToast('Configuration created successfully!');
     } catch {
       if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
@@ -1952,7 +1952,7 @@ function setupInstallPageActions() {
 }
 
 async function saveCurrentConfiguration(andShowInstall = false) {
-    const missingCreds = [];
+  const missingCreds = [];
   const nativeIds = ['opensubtitles', 'subdl', 'subsource'];
   for (const id of nativeIds) {
     const prov = state.config.providers[id];
@@ -1972,18 +1972,36 @@ async function saveCurrentConfiguration(andShowInstall = false) {
 
   hideMissingCredentialsBanner();
 
-  if (!state.isConfigCreated || !state.uuid || !state.password) {
+  if (!state.isConfigCreated || !state.uuid) {
     showToast('Set a password in the Install step to create and save your configuration.');
     navigateToPage('install');
     return;
   }
 
-  const passInput = document.getElementById('input-user-password');
-  if (passInput && passInput.value) {
-    state.password = passInput.value.trim();
+  if (!state.password && state.uuid) {
+    state.password = localStorage.getItem(`aiosubtitles_pass_${state.uuid}`) || '';
   }
 
-    try {
+  if (!state.password) {
+    const passInput = document.getElementById('input-user-password');
+    if (passInput && passInput.value) {
+      state.password = passInput.value.trim();
+    }
+  }
+
+  if (!state.password) {
+    showToast('Please enter your password to save changes.');
+    navigateToPage('install');
+    return;
+  }
+
+  const saveBtn = document.getElementById('btn-explicit-save');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+  }
+
+  try {
     const res = await fetch('/api/config/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1995,8 +2013,13 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     });
     const data = await res.json();
 
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+
     if (!res.ok || !data.success) {
-      alert(data.error || 'Could not save configuration.');
+      showToast(data.error || 'Could not save configuration.');
       return;
     }
 
@@ -2008,19 +2031,30 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     }
     notifyConfigChanged();
 
+    renderInstallPageDetails(false);
     if (andShowInstall) {
-      renderInstallPageDetails();
       navigateToPage('install');
     }
     showToast('Configuration saved successfully!');
-  } catch (err) {
-    alert('Connection error while saving configuration.');
+  } catch {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save';
+    }
+    showToast('Connection error while saving configuration.');
   }
 }
 
-function renderInstallPageDetails() {
+function renderInstallPageDetails(animateTransition = false) {
   const cardCreate = document.getElementById('card-create-configuration');
   const cardSave = document.getElementById('card-save-configuration');
+  const passRow = document.getElementById('save-password-row');
+  const loadExistingBtn = document.getElementById('btn-trigger-load-config');
+
+  if (state.uuid && !state.password) {
+    state.password = localStorage.getItem(`aiosubtitles_pass_${state.uuid}`) || '';
+  }
+  const isAuthenticated = Boolean(state.isConfigCreated && state.uuid && state.password);
 
   if (!state.isConfigCreated || !state.uuid) {
     if (cardCreate) cardCreate.style.display = 'block';
@@ -2055,10 +2089,33 @@ function renderInstallPageDetails() {
     const uuidDisplay = document.getElementById('display-user-uuid');
     if (uuidDisplay) uuidDisplay.textContent = state.uuid || '--------';
 
-    const passInput = document.getElementById('input-user-password');
-    if (passInput) {
-      passInput.value = state.password || '';
-      passInput.dispatchEvent(new Event('input'));
+    if (isAuthenticated) {
+      if (passRow) {
+        if (animateTransition) {
+          passRow.classList.add('collapsed');
+          setTimeout(() => {
+            if (state.password) {
+              passRow.style.display = 'none';
+            }
+          }, 150);
+        } else {
+          passRow.classList.add('collapsed');
+          passRow.style.display = 'none';
+        }
+      }
+      if (loadExistingBtn) {
+        loadExistingBtn.style.display = 'none';
+      }
+    } else {
+      if (passRow) {
+        passRow.style.display = 'block';
+        passRow.classList.remove('collapsed');
+        const passInput = document.getElementById('input-user-password');
+        if (passInput) passInput.value = '';
+      }
+      if (loadExistingBtn) {
+        loadExistingBtn.style.display = 'inline-flex';
+      }
     }
 
     const baseUrl = window.location.origin;
@@ -2089,7 +2146,7 @@ function renderInstallPageDetails() {
     }
   }
 
-    const timeoutInput = document.getElementById('install-addon-timeout');
+  const timeoutInput = document.getElementById('install-addon-timeout');
   if (timeoutInput) {
     timeoutInput.value = state.config.providerTimeoutMs || 6000;
   }

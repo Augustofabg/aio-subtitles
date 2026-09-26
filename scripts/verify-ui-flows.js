@@ -76,6 +76,14 @@ async function testAll() {
   assert(html.includes('id="card-save-configuration"'), 'Bloco #card-save-configuration (Estado B) presente');
   assert(html.includes('id="display-user-uuid"'), 'Exibição de UUID no bloco Save Configuration');
   assert(html.includes('id="btn-copy-uuid"'), 'Botão de cópia de UUID presente');
+  assert(html.includes('id="save-password-row"'), 'Linha de senha #save-password-row com transição suave presente');
+  assert(html.includes('id="btn-explicit-save"'), 'Botão Save #btn-explicit-save presente no painel');
+
+  // Verify JS logic for conditional visibility
+  const appJsPath = path.join(__dirname, '..', 'dist', 'web', 'public', 'app.js');
+  const appJs = fs.readFileSync(appJsPath, 'utf8');
+  assert(appJs.includes('passRow.classList.add(\'collapsed\')'), 'Lógica de colapso animado do campo de senha implementada no JS');
+  assert(appJs.includes('loadExistingBtn.style.display = \'none\''), 'Ocultação de "Load Existing Config" para sessão autenticada implementada');
 
   // 5. Test Sign Out Confirmation Modal
   console.log('\n--- 5. Verificação do Modal de Sign Out ---');
@@ -97,6 +105,7 @@ async function testAll() {
   assert(css.includes('@keyframes filterPaneEnter') && css.includes('translateY(12px)'), 'Transição vertical suave de abas de filtros implementada');
   assert(css.includes('@keyframes tagEnter') && css.includes('@keyframes tagExit'), 'Animações de entrada e saída na Whitelist implementadas');
   assert(css.includes('.modal-backdrop.closing') && css.includes('120ms'), 'Duração de saída de 120ms para modais implementada');
+  assert(css.includes('.collapsible-field') && css.includes('150ms'), 'Transição suave de colapso de 150ms para campos condicionais implementada');
   assert(css.includes('@media (prefers-reduced-motion: reduce)'), 'Suporte a prefers-reduced-motion implementado');
 
   // 7. Test Backend Authentication & Creation Workflow

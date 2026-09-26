@@ -2001,6 +2001,28 @@ body {
   text-align: left;
 }
 
+.password-config-row.collapsible-field {
+  transition: opacity 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              max-height 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              margin 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+  max-height: 90px;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.password-config-row.collapsible-field.collapsed {
+  max-height: 0;
+  opacity: 0;
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+
 .password-label {
   display: block;
   font-size: 12px;
