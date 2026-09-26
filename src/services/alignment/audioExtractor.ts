@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../../utils/logger';
 
@@ -7,7 +9,10 @@ export interface AudioExtractionResult {
 }
 
 export function getFfmpegPath(): string {
-  return process.env.FFMPEG_PATH || 'ffmpeg';
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  const localBin = path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+  if (fs.existsSync(localBin)) return localBin;
+  return 'ffmpeg';
 }
 
 export function isFfmpegAvailable(): Promise<boolean> {

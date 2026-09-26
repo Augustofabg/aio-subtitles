@@ -12,6 +12,7 @@
     "test:formatter": "tsx test/formatter.test.ts",
     "test:alignment": "tsx test/alignment.test.ts",
     "start": "node dist/index.js",
+    "render-build": "bash scripts/render-build.sh",
     "lint": "tsc --noEmit"
   },
   "keywords": [

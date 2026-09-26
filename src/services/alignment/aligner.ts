@@ -1,14 +1,22 @@
+import fs from 'fs';
+import path from 'path';
 import { spawn } from 'child_process';
 import { Logger } from '../../utils/logger';
 import { AlignmentToolStatus } from './types';
 import { isFfmpegAvailable, getFfmpegPath } from './audioExtractor';
 
 export function getAlassPath(): string {
-  return process.env.ALASS_PATH || 'alass';
+  if (process.env.ALASS_PATH) return process.env.ALASS_PATH;
+  const localBin = path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'alass.exe' : 'alass');
+  if (fs.existsSync(localBin)) return localBin;
+  return 'alass';
 }
 
 export function getFfsubsyncPath(): string {
-  return process.env.FFSUBSYNC_PATH || 'ffsubsync';
+  if (process.env.FFSUBSYNC_PATH) return process.env.FFSUBSYNC_PATH;
+  const localBin = path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'ffsubsync.exe' : 'ffsubsync');
+  if (fs.existsSync(localBin)) return localBin;
+  return 'ffsubsync';
 }
 
 export function isAlassAvailable(): Promise<boolean> {
