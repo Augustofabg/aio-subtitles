@@ -29,7 +29,12 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
   providerTimeoutMs: 6000,
   deduplication: true,
   deduplicationStrategy: 'both',
-  cacheTtlMinutes: 30
+  cacheTtlMinutes: 30,
+  formatter: {
+    preset: 'clean',
+    nameTemplate: '{sub.lang}',
+    descriptionTemplate: ''
+  }
 };
 
 export function encodeUserConfig(config: UserConfig): string {
@@ -212,6 +217,24 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       }
     }
   }
+
+  const formatterPreset = partial.formatter?.preset === 'detailed'
+    ? 'detailed'
+    : (partial.formatter?.preset === 'custom' ? 'custom' : 'clean');
+
+  const formatterName = typeof partial.formatter?.nameTemplate === 'string'
+    ? partial.formatter.nameTemplate
+    : (DEFAULT_USER_CONFIG.formatter?.nameTemplate || '{sub.lang}');
+
+  const formatterDesc = typeof partial.formatter?.descriptionTemplate === 'string'
+    ? partial.formatter.descriptionTemplate
+    : (DEFAULT_USER_CONFIG.formatter?.descriptionTemplate || '');
+
+  result.formatter = {
+    preset: formatterPreset,
+    nameTemplate: formatterName,
+    descriptionTemplate: formatterDesc
+  };
 
   return result;
 }

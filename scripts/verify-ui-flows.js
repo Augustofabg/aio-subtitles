@@ -147,6 +147,50 @@ async function testAll() {
   const manifestRes = await axios.get(`${BASE_URL}/${testUuid}/manifest.json`);
   assert(manifestRes.status === 200 && manifestRes.data.id, 'Manifest recuperado com sucesso para o UUID criado');
 
+  // 8. Test Formatter Tab Elements and Functionality
+  console.log('\n--- 8. Verificação da Aba Formatter (UI & Persistência) ---');
+  assert(html.includes('data-page="formatter"'), 'Item de navegação Formatter data-page="formatter" presente');
+  assert(html.includes('id="page-formatter"'), 'Seção de visualização #page-formatter presente');
+  assert(html.includes('id="btn-preset-clean"'), 'Preset Clean / Default presente');
+  assert(html.includes('id="btn-preset-detailed"'), 'Preset Detailed presente');
+  assert(html.includes('id="btn-preset-custom"'), 'Preset Custom presente');
+  assert(html.includes('id="btn-toggle-snippets"'), 'Botão Snippets presente');
+  assert(html.includes('id="snippets-popover"'), 'Drawer/Popover de Snippets presente');
+  assert(html.includes('{addon.name}') && html.includes('{sub.lang}') && html.includes('{sub.filename}'), 'Variáveis de Snippets presentes no HTML');
+  assert(html.includes('id="formatter-name-template"'), 'Textarea Name Template presente');
+  assert(html.includes('id="formatter-desc-template"'), 'Textarea Description Template presente');
+  assert(html.includes('card-formatter-preview') && html.includes('PREVIEW'), 'Card PREVIEW presente');
+  assert(html.includes('id="preview-sim-title"'), 'Elemento de título no preview presente');
+  assert(html.includes('id="preview-sim-desc"'), 'Elemento de descrição no preview presente');
+
+  // Verify Formatter persistence with custom templates
+  const formatterUuid = 'c1c2c3c4-2222-4333-8444-123456789def';
+  const saveFormatterRes = await axios.post(`${BASE_URL}/api/config/save`, {
+    uuid: formatterUuid,
+    password: testPass,
+    config: {
+      instanceName: 'AIOSubs',
+      languages: ['pob', 'eng'],
+      formatter: {
+        preset: 'detailed',
+        nameTemplate: '{sub.lang}',
+        descriptionTemplate: '{addon.name} • {sub.format}'
+      }
+    }
+  });
+  assert(saveFormatterRes.status === 200 && saveFormatterRes.data.success, 'Salvamento de configuração com Formatter bem-sucedido');
+
+  const loadFormatterRes = await axios.post(`${BASE_URL}/api/config/load`, {
+    uuid: formatterUuid,
+    password: testPass
+  });
+  assert(
+    loadFormatterRes.data.config.formatter &&
+    loadFormatterRes.data.config.formatter.preset === 'detailed' &&
+    loadFormatterRes.data.config.formatter.descriptionTemplate === '{addon.name} • {sub.format}',
+    'Persistência e recuperação do Formatter validadas no backend'
+  );
+
   console.log(`\n========================================`);
   console.log(`TOTAL DE TESTES: ${passed + failed}`);
   console.log(`PASSOU: ${passed}`);

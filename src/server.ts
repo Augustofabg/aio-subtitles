@@ -436,7 +436,9 @@ export function createServer(): express.Application {
       const query = parseSubtitleQuery(type, id, req.query as Record<string, string>);
       const response = await getAggregatedSubtitles(query, userConfig, baseUrl);
 
-      res.setHeader('Cache-Control', 'max-age=1800, public');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.json(response);
     } catch (err: unknown) {
       Logger.error('Failed to handle subtitles request', err);

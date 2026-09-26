@@ -6,6 +6,7 @@ import { validateAndNormalizeLanguage, isLanguageWhitelisted } from '../utils/no
 import { deduplicateSubtitles, prioritizeSubtitles } from '../utils/deduplicator';
 import { globalSubtitleCache } from '../utils/cache';
 import { Logger } from '../utils/logger';
+import { formatSubtitleItem } from './formatter';
 
 export function parseSubtitleQuery(
   type: string,
@@ -113,18 +114,34 @@ export async function getAggregatedSubtitles(
     Logger.info(`Deduplication: ${beforeCount} -> ${orderedItems.length} subtitles`);
   }
 
-  // Build clean response with original IDs, normalized language codes, and absolute URLs
-  const subtitles: StremioSubtitle[] = orderedItems.map(item => {
+  // Build clean response with formatted properties, sanitized IDs, and absolute URLs
+  const subtitles: StremioSubtitle[] = orderedItems.map((item, index) => {
     let finalUrl = item.url;
     if (finalUrl.startsWith('/')) {
       finalUrl = `${baseUrl}${finalUrl}`;
     }
 
-    return {
-      id: item.id,
-      lang: item.lang,
+    const formatted = formatSubtitleItem(item, config.formatter, index);
+
+    const subObj: StremioSubtitle = {
+      id: formatted.id,
+      lang: formatted.lang,
       url: finalUrl
     };
+
+    if (formatted.title) {
+      subObj.title = formatted.title;
+    }
+
+    if (formatted.label !== undefined) {
+      subObj.label = formatted.label;
+    }
+
+    if (formatted.description) {
+      subObj.description = formatted.description;
+    }
+
+    return subObj;
   });
 
   return {

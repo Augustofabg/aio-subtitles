@@ -20,6 +20,12 @@ export interface CustomAddonConfig {
   configurationURL?: string;
 }
 
+export interface FormatterConfig {
+  preset: 'clean' | 'detailed' | 'custom';
+  nameTemplate: string;
+  descriptionTemplate: string;
+}
+
 export interface UserConfig {
   instanceName?: string;
   instanceDesc?: string;
@@ -39,6 +45,7 @@ export interface UserConfig {
   deduplicationStrategy?: 'both' | 'hash' | 'fuzzy';
 
   cacheTtlMinutes: number;
+  formatter?: FormatterConfig;
 }
 
 export type PartialUserConfig = Partial<Omit<UserConfig, 'providers' | 'languageRemap'>> & {
