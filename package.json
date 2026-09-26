@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-assets.js",
-    "test": "tsx test/providerValidation.test.ts && tsx test/persistenceStorage.test.ts && tsx test/alignment.test.ts",
+    "test": "tsx test/providerValidation.test.ts && tsx test/persistenceStorage.test.ts && tsx test/formatter.test.ts && tsx test/alignment.test.ts",
     "test:providers": "tsx test/providerValidation.test.ts",
     "test:persistence": "tsx test/persistenceStorage.test.ts",
+    "test:formatter": "tsx test/formatter.test.ts",
     "test:alignment": "tsx test/alignment.test.ts",
     "start": "node dist/index.js",
     "lint": "tsc --noEmit"
