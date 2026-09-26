@@ -34,6 +34,12 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
     preset: 'clean',
     nameTemplate: '{sub.lang}',
     descriptionTemplate: ''
+  },
+  autoAlignment: {
+    enabled: false,
+    sampleDurationMinutes: 2,
+    timeoutSeconds: 5,
+    tool: 'auto'
   }
 };
 
@@ -234,6 +240,24 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
     preset: formatterPreset,
     nameTemplate: formatterName,
     descriptionTemplate: formatterDesc
+  };
+
+  const autoAlignEnabled = Boolean(partial.autoAlignment?.enabled);
+  const sampleDuration = (typeof partial.autoAlignment?.sampleDurationMinutes === 'number' && [2, 5].includes(partial.autoAlignment.sampleDurationMinutes))
+    ? partial.autoAlignment.sampleDurationMinutes
+    : (DEFAULT_USER_CONFIG.autoAlignment?.sampleDurationMinutes || 2);
+  const timeoutSec = (typeof partial.autoAlignment?.timeoutSeconds === 'number' && partial.autoAlignment.timeoutSeconds >= 2 && partial.autoAlignment.timeoutSeconds <= 15)
+    ? partial.autoAlignment.timeoutSeconds
+    : (DEFAULT_USER_CONFIG.autoAlignment?.timeoutSeconds || 5);
+  const alignTool = (partial.autoAlignment?.tool === 'alass' || partial.autoAlignment?.tool === 'ffsubsync')
+    ? partial.autoAlignment.tool
+    : 'auto';
+
+  result.autoAlignment = {
+    enabled: autoAlignEnabled,
+    sampleDurationMinutes: sampleDuration,
+    timeoutSeconds: timeoutSec,
+    tool: alignTool
   };
 
   return result;

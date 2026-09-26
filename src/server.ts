@@ -16,6 +16,7 @@ import { getAllProviders } from './providers';
 import { globalSubtitleCache } from './utils/cache';
 import { Logger } from './utils/logger';
 import { configStorage, isUuid } from './storage/configStore';
+import { alignSubtitle, detectAvailableTools } from './services/alignment';
 
 export function createServer(): express.Application {
   const app = express();
@@ -128,6 +129,15 @@ export function createServer(): express.Application {
       defaultEnabled: p.defaultEnabled
     }));
     res.json({ providers: list });
+  });
+
+  app.get('/api/alignment/status', async (_req: Request, res: Response): Promise<void> => {
+    try {
+      const status = await detectAvailableTools();
+      res.json(status);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to detect alignment tools', message: err?.message || String(err) });
+    }
   });
 
   app.post('/api/manifest/validate', async (req: Request, res: Response): Promise<void> => {
@@ -450,6 +460,76 @@ export function createServer(): express.Application {
   app.get('/:config/subtitles/:type/:id/:extra.json', handleSubtitles);
   app.get('/subtitles/:type/:id.json', handleSubtitles);
   app.get('/subtitles/:type/:id/:extra.json', handleSubtitles);
+
+  // Intermediate auto-sync subtitle alignment endpoint
+  app.get('/sub/aligned', async (req: Request, res: Response): Promise<void> => {
+    const videoUrl = String(req.query.videoUrl || '').trim();
+    const subUrl = String(req.query.subUrl || '').trim();
+    const uuid = String(req.query.uuid || '').trim();
+
+    if (!videoUrl || !subUrl) {
+      res.status(400).json({ error: 'Missing required query parameters: videoUrl and subUrl' });
+      return;
+    }
+
+    let sampleDurationMinutes = req.query.sampleDuration ? Number(req.query.sampleDuration) : undefined;
+    let timeoutSeconds = req.query.timeout ? Number(req.query.timeout) : undefined;
+    let preferredTool = (req.query.tool as 'alass' | 'ffsubsync' | 'auto') || undefined;
+
+    if (uuid) {
+      try {
+        const userCfg = await decodeUserConfigAsync(uuid);
+        if (userCfg?.autoAlignment) {
+          if (sampleDurationMinutes === undefined && userCfg.autoAlignment.sampleDurationMinutes) {
+            sampleDurationMinutes = userCfg.autoAlignment.sampleDurationMinutes;
+          }
+          if (timeoutSeconds === undefined && userCfg.autoAlignment.timeoutSeconds) {
+            timeoutSeconds = userCfg.autoAlignment.timeoutSeconds;
+          }
+          if (!preferredTool && userCfg.autoAlignment.tool) {
+            preferredTool = userCfg.autoAlignment.tool;
+          }
+        }
+      } catch {
+        // Fall back to defaults
+      }
+    }
+
+    try {
+      const result = await alignSubtitle({
+        videoUrl,
+        subUrl,
+        sampleDurationMinutes,
+        timeoutSeconds,
+        tool: preferredTool,
+        uuid
+      });
+
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('X-Alignment-Status', result.fromCache ? 'cached' : (result.isOriginalFallback ? 'fallback' : 'aligned'));
+      res.setHeader('X-Alignment-Cache', result.fromCache ? 'HIT' : 'MISS');
+      res.setHeader('X-Alignment-Time-Ms', String(result.metrics.totalDurationMs));
+      if (result.metrics.toolUsed) {
+        res.setHeader('X-Alignment-Tool', result.metrics.toolUsed);
+      }
+      if (result.metrics.fallbackReason) {
+        res.setHeader('X-Alignment-Fallback-Reason', result.metrics.fallbackReason);
+      }
+      res.setHeader('X-Alignment-RAM-Before-Mb', String(result.metrics.initialMemoryMb));
+      res.setHeader('X-Alignment-RAM-Peak-Mb', String(result.metrics.peakMemoryMb));
+
+      res.status(200).send(result.srtContent);
+    } catch (err: any) {
+      Logger.error('[Alignment Endpoint] Fatal error:', err);
+      res.status(502).json({
+        error: 'Subtitle alignment failed and could not retrieve fallback subtitle',
+        details: err?.message || String(err)
+      });
+    }
+  });
 
   // Direct subtitle download endpoints
   app.get('/download/:id', handleShortIdDownload);

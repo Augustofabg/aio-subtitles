@@ -55,6 +55,12 @@ const DEFAULT_CONFIG = {
     preset: 'clean',
     nameTemplate: '{sub.lang}',
     descriptionTemplate: ''
+  },
+  autoAlignment: {
+    enabled: false,
+    sampleDurationMinutes: 2,
+    timeoutSeconds: 5,
+    tool: 'auto'
   }
 };
 
@@ -220,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupAddonsActions();
   setupFiltersActions();
   setupFormatterActions();
+  setupAlignmentActions();
   setupInstallPageActions();
   setupModals();
   setupDashboardLoginModal();
@@ -464,6 +471,22 @@ function applyConfigWithMigration(parsed) {
       preset: parsed.formatter.preset || 'clean',
       nameTemplate: typeof parsed.formatter.nameTemplate === 'string' ? parsed.formatter.nameTemplate : '{sub.lang}',
       descriptionTemplate: typeof parsed.formatter.descriptionTemplate === 'string' ? parsed.formatter.descriptionTemplate : ''
+    };
+  }
+
+  if (parsed.autoAlignment && typeof parsed.autoAlignment === 'object') {
+    merged.autoAlignment = {
+      enabled: Boolean(parsed.autoAlignment.enabled),
+      sampleDurationMinutes: Number(parsed.autoAlignment.sampleDurationMinutes) || 2,
+      timeoutSeconds: Number(parsed.autoAlignment.timeoutSeconds) || 5,
+      tool: parsed.autoAlignment.tool || 'auto'
+    };
+  } else {
+    merged.autoAlignment = {
+      enabled: false,
+      sampleDurationMinutes: 2,
+      timeoutSeconds: 5,
+      tool: 'auto'
     };
   }
 
@@ -2046,6 +2069,115 @@ function setupFormatterActions() {
   });
 }
 
+function renderAlignmentState() {
+  if (!state.config.autoAlignment) {
+    state.config.autoAlignment = {
+      enabled: false,
+      sampleDurationMinutes: 2,
+      timeoutSeconds: 5,
+      tool: 'auto'
+    };
+  }
+
+  const toggle = document.getElementById('toggle-auto-alignment');
+  const panel = document.getElementById('alignment-options-panel');
+  const durationSelect = document.getElementById('align-sample-duration');
+  const timeoutSelect = document.getElementById('align-timeout-seconds');
+  const toolSelect = document.getElementById('align-tool-preference');
+
+  const isEnabled = Boolean(state.config.autoAlignment.enabled);
+
+  if (toggle) {
+    toggle.checked = isEnabled;
+  }
+  if (panel) {
+    panel.style.display = isEnabled ? 'block' : 'none';
+  }
+  if (durationSelect) {
+    durationSelect.value = String(state.config.autoAlignment.sampleDurationMinutes || 2);
+  }
+  if (timeoutSelect) {
+    timeoutSelect.value = String(state.config.autoAlignment.timeoutSeconds || 5);
+  }
+  if (toolSelect) {
+    toolSelect.value = state.config.autoAlignment.tool || 'auto';
+  }
+}
+
+async function checkAlignmentToolsStatus() {
+  const badge = document.getElementById('align-tool-status-badge');
+  if (!badge) return;
+  try {
+    const res = await fetch('/api/alignment/status');
+    if (res.ok) {
+      const data = await res.json();
+      const detected = [];
+      if (data.ffmpegAvailable) detected.push('ffmpeg');
+      if (data.alassAvailable) detected.push('alass');
+      if (data.ffsubsyncAvailable) detected.push('ffsubsync');
+
+      if (detected.length >= 2 && data.ffmpegAvailable && (data.alassAvailable || data.ffsubsyncAvailable)) {
+        badge.textContent = `Active engines: ${detected.join(', ')}`;
+        badge.style.color = '#34d399';
+      } else if (detected.length > 0) {
+        badge.textContent = `Partial tools: ${detected.join(', ')} (fallback active if needed)`;
+        badge.style.color = '#fbbf24';
+      } else {
+        badge.textContent = 'Binaries not detected in PATH. Safe fallback mode enabled (original subtitles delivered without errors).';
+        badge.style.color = '#94a3b8';
+      }
+    }
+  } catch {
+    badge.textContent = 'Could not query alignment daemon status';
+    badge.style.color = '#94a3b8';
+  }
+}
+
+function setupAlignmentActions() {
+  const toggle = document.getElementById('toggle-auto-alignment');
+  const panel = document.getElementById('alignment-options-panel');
+  const durationSelect = document.getElementById('align-sample-duration');
+  const timeoutSelect = document.getElementById('align-timeout-seconds');
+  const toolSelect = document.getElementById('align-tool-preference');
+
+  toggle?.addEventListener('change', () => {
+    if (!state.config.autoAlignment) {
+      state.config.autoAlignment = { enabled: false, sampleDurationMinutes: 2, timeoutSeconds: 5, tool: 'auto' };
+    }
+    state.config.autoAlignment.enabled = toggle.checked;
+    if (panel) {
+      panel.style.display = toggle.checked ? 'block' : 'none';
+    }
+    notifyConfigChanged();
+    if (toggle.checked) {
+      showToast('Auto Subtitle Alignment enabled (Experimental)');
+      checkAlignmentToolsStatus();
+    } else {
+      showToast('Auto Subtitle Alignment disabled');
+    }
+  });
+
+  durationSelect?.addEventListener('change', () => {
+    if (!state.config.autoAlignment) state.config.autoAlignment = { enabled: true, sampleDurationMinutes: 2, timeoutSeconds: 5, tool: 'auto' };
+    state.config.autoAlignment.sampleDurationMinutes = Number(durationSelect.value) || 2;
+    notifyConfigChanged();
+  });
+
+  timeoutSelect?.addEventListener('change', () => {
+    if (!state.config.autoAlignment) state.config.autoAlignment = { enabled: true, sampleDurationMinutes: 2, timeoutSeconds: 5, tool: 'auto' };
+    state.config.autoAlignment.timeoutSeconds = Number(timeoutSelect.value) || 5;
+    notifyConfigChanged();
+  });
+
+  toolSelect?.addEventListener('change', () => {
+    if (!state.config.autoAlignment) state.config.autoAlignment = { enabled: true, sampleDurationMinutes: 2, timeoutSeconds: 5, tool: 'auto' };
+    state.config.autoAlignment.tool = toolSelect.value || 'auto';
+    notifyConfigChanged();
+  });
+
+  checkAlignmentToolsStatus();
+}
+
 function setupInstallPageActions() {
     document.getElementById('btn-export-backup')?.addEventListener('click', () => {
     const backupData = {
@@ -2771,6 +2903,7 @@ function renderAll() {
   renderRemapTable();
   renderFiltersPriority();
   renderFormatterState();
+  renderAlignmentState();
   renderInstallPageDetails();
   updateStats();
 }

@@ -26,6 +26,13 @@ export interface FormatterConfig {
   descriptionTemplate: string;
 }
 
+export interface AutoAlignmentConfig {
+  enabled: boolean;
+  sampleDurationMinutes: number;
+  timeoutSeconds: number;
+  tool?: 'alass' | 'ffsubsync' | 'auto';
+}
+
 export interface UserConfig {
   instanceName?: string;
   instanceDesc?: string;
@@ -46,6 +53,7 @@ export interface UserConfig {
 
   cacheTtlMinutes: number;
   formatter?: FormatterConfig;
+  autoAlignment?: AutoAlignmentConfig;
 }
 
 export type PartialUserConfig = Partial<Omit<UserConfig, 'providers' | 'languageRemap'>> & {
