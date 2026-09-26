@@ -64,7 +64,7 @@ export abstract class BaseSubtitleProvider implements SubtitleProvider {
       ...options,
       signal,
       headers: {
-        'User-Agent': 'AIOSubtitles/1.0.0 (Stremio Addon)',
+        'User-Agent': 'AIOSubs v1.0.0 (Stremio Addon)',
         ...(options.headers || {})
       }
     });

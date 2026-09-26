@@ -68,7 +68,7 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
         {
           headers: {
             'Api-Key': entry.apiKey,
-            'User-Agent': 'AIOSubtitles/1.0.0',
+            'User-Agent': 'AIOSubs v1.0.0',
             'Content-Type': 'application/json'
           },
           timeout: 10000
@@ -211,7 +211,7 @@ export async function handleOpenSubtitlesRestDownload(req: Request, res: Respons
       {
         headers: {
           'Api-Key': apiKey,
-          'User-Agent': 'AIOSubtitles/1.0.0',
+          'User-Agent': 'AIOSubs v1.0.0',
           'Content-Type': 'application/json'
         },
         timeout: 10000

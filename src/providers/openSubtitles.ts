@@ -74,7 +74,8 @@ export class OpenSubtitlesProvider extends BaseSubtitleProvider {
         params,
         headers: {
           'Api-Key': apiKey,
-          'User-Agent': 'AIOSubtitles v1.0.0'
+          'User-Agent': 'AIOSubs v1.0.0',
+          'Content-Type': 'application/json'
         },
         timeout: 10000
       },

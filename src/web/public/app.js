@@ -305,17 +305,9 @@ async function loadInitialConfiguration() {
     return;
   }
 
-  const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
-  const storedPass = sessionUuid ? (localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '') : '';
-  if (sessionUuid && isUuid(sessionUuid)) {
-    state.uuid = sessionUuid;
-    state.password = storedPass;
-    state.isConfigCreated = true;
-  } else {
-    state.isConfigCreated = false;
-    state.uuid = '';
-    state.password = '';
-  }
+  state.isConfigCreated = false;
+  state.uuid = '';
+  state.password = '';
   applyConfigWithMigration(DEFAULT_CONFIG);
   state.lastSavedConfigJson = '';
   showLandingView();
@@ -488,73 +480,17 @@ function startNewConfiguration() {
 }
 
 function renderLandingActions() {
-  const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
   const btnConfig = document.getElementById('btn-landing-configure');
-  const btnNew = document.getElementById('btn-landing-new');
-
-  if (sessionUuid && isUuid(sessionUuid)) {
-    if (btnConfig) {
-      btnConfig.textContent = `Continue (${sessionUuid.substring(0, 8)}...)`;
-      btnConfig.title = `Resume editing UUID ${sessionUuid}`;
-    }
-    if (btnNew) {
-      btnNew.style.display = 'inline-flex';
-    }
-  } else {
-    if (btnConfig) {
-      btnConfig.textContent = 'Configure';
-      btnConfig.title = 'Create a new configuration';
-    }
-    if (btnNew) {
-      btnNew.style.display = 'none';
-    }
+  if (btnConfig) {
+    btnConfig.textContent = 'Configure';
+    btnConfig.title = 'Create a new configuration';
   }
 }
 
 function setupLandingActions() {
   renderLandingActions();
 
-  document.getElementById('btn-landing-new')?.addEventListener('click', () => {
-    startNewConfiguration();
-  });
-
-  document.getElementById('btn-landing-configure')?.addEventListener('click', async () => {
-    const sessionUuid = state.uuid || localStorage.getItem('aiosubtitles_current_uuid');
-    const storedPass = sessionUuid ? (state.password || localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '') : '';
-
-    if (sessionUuid && isUuid(sessionUuid)) {
-      state.uuid = sessionUuid;
-      state.isConfigCreated = true;
-      if (storedPass) {
-        state.password = storedPass;
-        try {
-          const res = await fetch('/api/config/load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uuid: sessionUuid, password: storedPass })
-          });
-          const data = await res.json();
-          if (res.ok && data.success && data.config) {
-            applyConfigWithMigration(data.config);
-            state.lastSavedConfigJson = JSON.stringify(state.config);
-            window.history.pushState(null, '', `/${state.uuid}/configure`);
-            showWizardView();
-            navigateToPage('home');
-            renderAll();
-            checkSavedDraft();
-            return;
-          }
-        } catch (err) {
-          console.error('[Session] Error loading config:', err);
-        }
-      }
-      window.history.pushState(null, '', `/${state.uuid}/configure`);
-      showWizardView();
-      navigateToPage('home');
-      renderAll();
-      return;
-    }
-
+  document.getElementById('btn-landing-configure')?.addEventListener('click', () => {
     startNewConfiguration();
   });
 

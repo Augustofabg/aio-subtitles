@@ -246,9 +246,9 @@ export function createServer(): express.Application {
     }
   });
 
-  app.post('/api/validate-key/:service', async (req: Request, res: Response): Promise<void> => {
+  const handleValidateKey = async (req: Request, res: Response): Promise<void> => {
     const service = (req.params.service || '').toLowerCase();
-    const apiKey = (req.body?.apiKey as string || '').trim();
+    const apiKey = ((req.body?.apiKey || req.query?.apiKey || '') as string).trim();
 
     if (!apiKey) {
       res.json({ valid: false, error: 'Chave não informada.' });
@@ -260,7 +260,8 @@ export function createServer(): express.Application {
         const response = await axios.get('https://api.opensubtitles.com/api/v1/infos/user', {
           headers: {
             'Api-Key': apiKey,
-            'User-Agent': 'AIOSubtitles/1.0.0'
+            'User-Agent': 'AIOSubs v1.0.0',
+            'Content-Type': 'application/json'
           },
           timeout: 6000
         });
@@ -268,9 +269,13 @@ export function createServer(): express.Application {
           res.json({ valid: true });
           return;
         }
-        res.json({ valid: false, error: 'Resposta inesperada' });
-      } catch {
-        res.json({ valid: false, error: 'Chave inválida ou sem permissão no OpenSubtitles' });
+        res.json({ valid: false, error: 'Resposta inesperada do OpenSubtitles' });
+      } catch (err: any) {
+        const status = err?.response?.status;
+        const msg = (status === 401 || status === 403)
+          ? 'Chave inválida ou não autorizada no OpenSubtitles'
+          : (err?.response?.data?.message || 'Chave inválida ou sem permissão no OpenSubtitles');
+        res.json({ valid: false, error: msg });
       }
       return;
     }
@@ -324,7 +329,10 @@ export function createServer(): express.Application {
     }
 
     res.status(400).json({ valid: false, error: 'Serviço desconhecido' });
-  });
+  };
+
+  app.post('/api/validate-key/:service', handleValidateKey);
+  app.get('/api/validate-key/:service', handleValidateKey);
 
   const handleConfigSave = async (req: Request, res: Response): Promise<void> => {
     const rawUuid = req.params?.uuid || req.body?.uuid || '';
