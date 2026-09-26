@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+echo "==> Installing dependencies (including newly added packages)..."
+npm install --include=dev
+
 echo "==> Building AIOSubs application..."
 npm run build
 
