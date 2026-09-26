@@ -1,5 +1,6 @@
 # 🎬 AIOSubs (AIO Subtitles) — Universal Subtitle Aggregator for Stremio & Nuvio
 
+[![Build Status](https://github.com/Augustofabg/aio-subtitles/actions/workflows/docker-build.yml/badge.svg)](https://github.com/Augustofabg/aio-subtitles/actions/workflows/docker-build.yml)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-%5E5.7.0-blue.svg)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
