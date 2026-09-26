@@ -7,8 +7,16 @@ import { isFfmpegAvailable, getFfmpegPath } from './audioExtractor';
 
 export function getAlassPath(): string {
   if (process.env.ALASS_PATH) return process.env.ALASS_PATH;
-  const localBin = path.join(process.cwd(), 'bin', process.platform === 'win32' ? 'alass.exe' : 'alass');
-  if (fs.existsSync(localBin)) return localBin;
+  const isWin = process.platform === 'win32';
+  const localCandidates = isWin
+    ? ['alass.exe', 'alass-cli.exe', 'alass.bat']
+    : ['alass', 'alass-cli'];
+
+  for (const name of localCandidates) {
+    const localBin = path.join(process.cwd(), 'bin', name);
+    if (fs.existsSync(localBin)) return localBin;
+  }
+
   return 'alass';
 }
 
@@ -19,16 +27,32 @@ export function getFfsubsyncPath(): string {
   return 'ffsubsync';
 }
 
-export function isAlassAvailable(): Promise<boolean> {
+function testBinaryExecution(bin: string, args: string[]): Promise<boolean> {
   return new Promise((resolve) => {
     try {
-      const proc = spawn(getAlassPath(), ['--version']);
+      const proc = spawn(bin, args);
       proc.on('error', () => resolve(false));
       proc.on('close', (code) => resolve(code === 0));
     } catch {
       resolve(false);
     }
   });
+}
+
+export async function isAlassAvailable(): Promise<boolean> {
+  const currentPath = getAlassPath();
+  // 1. Try with --version
+  if (await testBinaryExecution(currentPath, ['--version'])) return true;
+  // 2. Try with --help
+  if (await testBinaryExecution(currentPath, ['--help'])) return true;
+
+  // 3. If standard 'alass' wasn't found in PATH, check 'alass-cli' in PATH
+  if (currentPath === 'alass') {
+    if (await testBinaryExecution('alass-cli', ['--version'])) return true;
+    if (await testBinaryExecution('alass-cli', ['--help'])) return true;
+  }
+
+  return false;
 }
 
 export function isFfsubsyncAvailable(): Promise<boolean> {
