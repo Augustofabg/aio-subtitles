@@ -121,6 +121,11 @@ export async function getAggregatedSubtitles(
       finalUrl = `${baseUrl}${finalUrl}`;
     }
 
+    if (config.autoAlignment?.enabled && query.extra?.videoUrl) {
+      const vUrl = query.extra.videoUrl;
+      finalUrl = `${baseUrl}/sub/aligned?videoUrl=${encodeURIComponent(vUrl)}&subUrl=${encodeURIComponent(finalUrl)}`;
+    }
+
     const formatted = formatSubtitleItem(item, config.formatter, index);
 
     const subObj: StremioSubtitle = {
