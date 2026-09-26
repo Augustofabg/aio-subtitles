@@ -2013,6 +2013,25 @@ function setupFormatterActions() {
       showToast(`Inserted ${snippet}`);
     });
   });
+
+  document.getElementById('btn-save-formatter')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-save-formatter');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+    }
+    try {
+      await saveConfigurationExplicit(false);
+      showToast('Formatter settings saved and applied!');
+    } catch (e) {
+      console.error(e);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Save Changes';
+      }
+    }
+  });
 }
 
 function setupInstallPageActions() {

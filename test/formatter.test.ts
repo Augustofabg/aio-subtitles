@@ -68,7 +68,8 @@ async function runFormatterTests() {
 
   const cleanResult = formatSubtitleItem(sampleCommunityItem, cleanConfig, 0);
   assert(cleanResult.description === undefined, 'No preset Clean, a propriedade description é suprimida do payload');
-  assert(!cleanResult.id.includes('com.community'), 'ID técnico com.community... é purgado e sanitizado');
+  assert(cleanResult.label === '', 'No preset Clean, label é vazio para evitar que o Nuvio mostre linhas secundárias');
+  assert(!cleanResult.id.includes('community') && !cleanResult.id.includes('stremio-subtitles'), 'ID técnico com.community... é purgado e sanitizado');
   assert(cleanResult.title === 'Português (Brasil)', 'Nome da legenda é exibido limpo');
 
   // 4. Test Preset "Detailed"
@@ -81,6 +82,8 @@ async function runFormatterTests() {
 
   const detailedResult = formatSubtitleItem(sampleCommunityItem, detailedConfig, 0);
   assert(detailedResult.description === 'Community Subsync • SRT', 'Description formatada com metadados úteis');
+  assert(detailedResult.label === 'Community Subsync • SRT', 'Label formatada com metadados úteis (Stremio PR #947)');
+  assert(detailedResult.id === 'Community Subsync • SRT', 'ID mapeado para o texto formatado para clientes como Nuvio');
   assert(detailedResult.title === 'Português (Brasil)', 'Title exibe o idioma');
 
   // 5. Test Preset "Custom"
@@ -94,6 +97,8 @@ async function runFormatterTests() {
   const customResult = formatSubtitleItem(sampleCommunityItem, customConfig, 0);
   assert(customResult.title === '[SRT] Português (Brasil)', 'Title personalizado com formato e idioma');
   assert(customResult.description === 'Inception.2010.1080p.BluRay.x264.srt (23.976 fps)', 'Description personalizada com filename e fps');
+  assert(customResult.label === 'Inception.2010.1080p.BluRay.x264.srt (23.976 fps)', 'Label personalizada com filename e fps');
+  assert(customResult.id === 'Inception.2010.1080p.BluRay.x264.srt (23.976 fps)', 'ID mapeado para a descrição personalizada no Nuvio');
 
   // 6. Test Live Preview simulation helper
   console.log('\n--- 6. Simulação de Preview em Tempo Real ---');

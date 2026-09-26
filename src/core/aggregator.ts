@@ -133,6 +133,10 @@ export async function getAggregatedSubtitles(
       subObj.title = formatted.title;
     }
 
+    if (formatted.label !== undefined) {
+      subObj.label = formatted.label;
+    }
+
     if (formatted.description) {
       subObj.description = formatted.description;
     }

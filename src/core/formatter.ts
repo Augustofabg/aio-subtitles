@@ -6,6 +6,7 @@ export interface FormattedSubtitleResult {
   id: string;
   lang: string;
   title?: string;
+  label?: string;
   description?: string;
 }
 
@@ -71,12 +72,11 @@ export function interpolateVariables(template: string, vars: Record<string, stri
 
 export function sanitizeSubtitleId(rawId: string, item: RawSubtitleItem, index: number): string {
   // If rawId contains technical debug / community paths like "com.community..." or "community.subsync"
-  if (/community|subsync|stremio-subtitles/i.test(rawId)) {
-    const prefix = (item.provider || 'sub').replace(/[^a-zA-Z0-9_-]/g, '-').replace(/^-+|-+$/g, '');
-    return `${prefix || 'sub'}-${item.lang || 'und'}-${index + 1}`;
+  if (!rawId || /community|subsync|stremio-subtitles/i.test(rawId) || /^[a-z0-9_]+\.[a-z0-9_]+/i.test(rawId)) {
+    return `${item.lang || 'sub'}-${index + 1}`;
   }
 
-  return rawId || `sub-${index + 1}`;
+  return rawId;
 }
 
 export function formatSubtitleItem(
@@ -101,26 +101,45 @@ export function formatSubtitleItem(
     : '';
 
   const formattedName = interpolateVariables(nameTemplate, vars) || vars['sub.lang'] || item.lang;
-  const formattedDesc = interpolateVariables(descTemplate, vars);
+  const formattedDesc = interpolateVariables(descTemplate, vars).trim();
 
-  // If description is empty, sanitize id to prevent Nuvio from displaying raw community package names as fallback
-  const cleanId = formattedDesc.trim() === ''
-    ? sanitizeSubtitleId(item.id, item, index)
-    : item.id;
+  // If description template evaluates to a non-empty string (Detailed or Custom mode):
+  if (formattedDesc !== '') {
+    // Both Nuvio and Stremio should display `formattedDesc` as the secondary line.
+    // In Stremio, `label` is the official property (PR #947).
+    // In Nuvio, it renders `sub.label ?: sub.id`.
+    // By setting `label`, `description`, AND `id` to the formatted description (with index suffix if needed for uniqueness),
+    // we guarantee that NO player can display any technical community IDs.
+    const uniqueId = index > 0 ? `${formattedDesc} #${index + 1}` : formattedDesc;
+
+    const result: FormattedSubtitleResult = {
+      id: uniqueId,
+      lang: item.lang,
+      label: formattedDesc,
+      description: formattedDesc
+    };
+
+    if (formattedName && formattedName !== item.lang) {
+      result.title = formattedName;
+    }
+
+    return result;
+  }
+
+  // If description template evaluates to an empty string ("Clean / Default" mode):
+  // 1. Omit `description` completely
+  // 2. Set `label: ""` so players reading `label` do not fall back to technical IDs
+  // 3. Sanitize `id` so that even if a client displays `id`, it is a clean short index
+  const cleanId = sanitizeSubtitleId(item.id, item, index);
 
   const result: FormattedSubtitleResult = {
     id: cleanId,
-    lang: item.lang
+    lang: item.lang,
+    label: ''
   };
 
   if (formattedName && formattedName !== item.lang) {
     result.title = formattedName;
-  }
-
-  // Only attach description if it evaluated to a non-empty string.
-  // When empty, omitting it ensures players do not show residual debug lines.
-  if (formattedDesc && formattedDesc.trim() !== '') {
-    result.description = formattedDesc.trim();
   }
 
   return result;

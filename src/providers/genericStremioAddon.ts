@@ -79,7 +79,7 @@ export class GenericStremioAddonProvider extends BaseSubtitleProvider {
       const isHI = /(hearing\.impaired|\.hi\.|\[hi\]|\(hi\)|\[cc\]|\.cc\.)/i.test(release);
 
       items.push({
-        id: `${this.id}-${sub.id || Math.random().toString(36).substring(2, 9)}`,
+        id: sub.id ? String(sub.id) : `sub-${Math.random().toString(36).substring(2, 9)}`,
         provider: this.id,
         providerName: this.name,
         url: sub.url,

@@ -26,9 +26,10 @@ export interface StremioSubtitle {
   id: string;
   url: string;
   lang: string;
-  // Optional extra fields recognized by some players (like Nuvio or Web)
+  // Optional extra fields recognized by players (like Nuvio or Web, stremio-core PR #947)
   file?: string;
   title?: string;
+  label?: string;
   description?: string;
 }
 
