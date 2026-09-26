@@ -13,5 +13,7 @@ export const ENV = {
   CACHE_TTL_MINUTES: parseInt(process.env.CACHE_TTL_MINUTES || '30', 10),
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000', 10),
   RATE_LIMIT_MAX: parseInt(process.env.RATE_LIMIT_MAX || '150', 10),
+  SUPABASE_URL: process.env.SUPABASE_URL || '',
+  SUPABASE_KEY: process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   NODE_ENV: process.env.NODE_ENV || 'development'
 };

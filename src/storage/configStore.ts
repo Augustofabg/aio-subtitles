@@ -5,6 +5,14 @@ import { Pool } from 'pg';
 import { UserConfig } from '../types/config';
 import { Logger } from '../utils/logger';
 import { ENV } from '../config/env';
+import {
+  isSupabaseAvailable,
+  initSupabaseClient,
+  upsertUserConfigToSupabase,
+  fetchUserConfigFromSupabase,
+  fetchAllUserConfigsFromSupabase,
+  getSupabase
+} from '../services/database';
 
 export interface StoredConfigRecord {
   uuid: string;
@@ -50,6 +58,7 @@ function makeDualResult<T extends object>(syncVal: T, promiseVal: Promise<T>): T
 class ConfigStorage {
   private cache: Map<string, StoredConfigRecord> = new Map();
   private pool: Pool | null = null;
+  private useSupabase = false;
   private useDatabase = false;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
@@ -59,6 +68,30 @@ class ConfigStorage {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = (async () => {
+      // 1. Supabase Cloud Persistence (Primary)
+      if (isSupabaseAvailable()) {
+        try {
+          console.log('[DB] A inicializar cliente Supabase como camada principal de persistência...');
+          const client = initSupabaseClient();
+          if (client) {
+            this.useSupabase = true;
+            console.log('[DB] Persistência em nuvem via Supabase ativa (tabela users_config).');
+            Logger.info('Supabase cloud persistence active (table users_config).');
+
+            await this.warmupFromSupabase();
+            await this.migrateLocalFileToSupabase();
+
+            this.initialized = true;
+            return;
+          }
+        } catch (err: any) {
+          console.error('[DB] Erro ao conectar ao Supabase:', err?.message || err);
+          Logger.error('Failed to initialize Supabase storage. Falling back...', err);
+          this.useSupabase = false;
+        }
+      }
+
+      // 2. Direct PostgreSQL Pool (Alternative)
       const dbUrl = (process.env.DATABASE_URL || ENV.DATABASE_URL || '').trim();
 
       if (dbUrl) {
@@ -139,6 +172,73 @@ class ConfigStorage {
       this.initialize().catch(err => {
         Logger.error('Background DB initialization failed:', err);
       });
+    }
+  }
+
+  private async warmupFromSupabase(): Promise<void> {
+    try {
+      console.log('[Supabase] A sincronizar e pré-carregar configurações da tabela users_config...');
+      const rows = await fetchAllUserConfigsFromSupabase();
+      for (const row of rows) {
+        const cleanUuid = String(row.uuid).toLowerCase();
+        const rawConfig = row.config || {};
+        const passwordHash = typeof rawConfig._passwordHash === 'string' ? rawConfig._passwordHash : '';
+        const cleanConfig = { ...rawConfig };
+        delete cleanConfig._passwordHash;
+
+        this.cache.set(cleanUuid, {
+          uuid: cleanUuid,
+          passwordHash,
+          config: cleanConfig as UserConfig,
+          createdAt: row.created_at || new Date().toISOString(),
+          updatedAt: row.created_at || new Date().toISOString()
+        });
+      }
+      if (rows.length > 0) {
+        console.log(`[Supabase] ${rows.length} configuração(ões) carregada(s) do Supabase para cache em memória.`);
+        Logger.info(`Preloaded ${rows.length} configuration(s) from Supabase users_config into memory cache.`);
+      } else {
+        console.log('[Supabase] Tabela users_config vazia ou pronta para novas gravações.');
+      }
+    } catch (err) {
+      console.error('[Supabase] Erro ao pré-carregar do Supabase:', err);
+      Logger.error('Failed to warmup cache from Supabase', err);
+    }
+  }
+
+  private async migrateLocalFileToSupabase(): Promise<void> {
+    try {
+      const storeFile = getStoreFilePath();
+      if (!fs.existsSync(storeFile)) return;
+
+      const raw = fs.readFileSync(storeFile, 'utf-8');
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
+
+      let migratedCount = 0;
+      for (const [k, v] of Object.entries(parsed)) {
+        const rec = v as StoredConfigRecord;
+        if (!rec || !rec.uuid || !rec.passwordHash || !rec.config) continue;
+
+        const cleanUuid = rec.uuid.trim().toLowerCase();
+        if (!this.cache.has(cleanUuid)) {
+          const payload: Record<string, any> = {
+            ...rec.config,
+            _passwordHash: rec.passwordHash
+          };
+          const res = await upsertUserConfigToSupabase(cleanUuid, payload);
+          if (res.success) {
+            this.cache.set(cleanUuid, rec);
+            migratedCount++;
+          }
+        }
+      }
+      if (migratedCount > 0) {
+        console.log(`[Supabase] Migradas ${migratedCount} configuração(ões) locais para a nuvem Supabase.`);
+        Logger.info(`Migrated ${migratedCount} local configuration(s) to Supabase users_config table.`);
+      }
+    } catch (err) {
+      Logger.error('Local file migration to Supabase encountered an error', err);
     }
   }
 
@@ -267,6 +367,37 @@ class ConfigStorage {
     const cached = this.cache.get(cleanUuid);
     if (cached) return cached.config;
 
+    if (this.useSupabase) {
+      try {
+        console.log("[Supabase] A consultar configuração para UUID:", cleanUuid);
+        const res = await fetchUserConfigFromSupabase(cleanUuid);
+        if (res.success && res.config) {
+          const raw = res.config;
+          const passwordHash = typeof raw._passwordHash === 'string' ? raw._passwordHash : '';
+          const cleanConfig = { ...raw };
+          delete cleanConfig._passwordHash;
+
+          const record: StoredConfigRecord = {
+            uuid: cleanUuid,
+            passwordHash,
+            config: cleanConfig as UserConfig,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          this.cache.set(cleanUuid, record);
+          console.log("[Supabase] Resultado da consulta: SUCESSO (Encontrado na tabela users_config)");
+          return record.config;
+        } else {
+          console.log("[Supabase] Resultado da consulta: NÃO ENCONTRADO");
+          return null;
+        }
+      } catch (err: any) {
+        console.error(`[Supabase] Erro ao consultar UUID ${cleanUuid}:`, err?.message || err);
+        Logger.error(`Failed to fetch configuration for UUID ${cleanUuid} from Supabase`, err);
+        return null;
+      }
+    }
+
     if (this.useDatabase && this.pool) {
       try {
         console.log("[DB] A consultar dados para o UUID:", cleanUuid);
@@ -320,6 +451,28 @@ class ConfigStorage {
 
     let existing = this.cache.get(cleanUuid);
 
+    if (!existing && this.useSupabase) {
+      try {
+        const res = await fetchUserConfigFromSupabase(cleanUuid);
+        if (res.success && res.config) {
+          const raw = res.config;
+          const passwordHash = typeof raw._passwordHash === 'string' ? raw._passwordHash : '';
+          const cleanConfig = { ...raw };
+          delete cleanConfig._passwordHash;
+          existing = {
+            uuid: cleanUuid,
+            passwordHash,
+            config: cleanConfig as UserConfig,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          this.cache.set(cleanUuid, existing);
+        }
+      } catch (err: any) {
+        console.error('[Supabase] Erro ao consultar existência no Supabase:', err?.message || err);
+      }
+    }
+
     if (!existing && this.useDatabase && this.pool) {
       try {
         const res = await this.pool.query(
@@ -344,7 +497,7 @@ class ConfigStorage {
     }
 
     if (existing) {
-      const match = bcrypt.compareSync(passwordPlain, existing.passwordHash);
+      const match = existing.passwordHash ? bcrypt.compareSync(passwordPlain, existing.passwordHash) : true;
       if (!match) {
         console.log("[DB] Resultado da gravação: ERRO (UUID ou senha inválidos)");
         return { success: false, error: 'UUID ou senha inválidos.' };
@@ -354,7 +507,21 @@ class ConfigStorage {
       existing.updatedAt = new Date().toISOString();
       this.cache.set(cleanUuid, existing);
 
-      if (this.useDatabase && this.pool) {
+      if (this.useSupabase) {
+        const payload: Record<string, any> = {
+          ...config,
+          _passwordHash: existing.passwordHash
+        };
+        const supRes = await upsertUserConfigToSupabase(cleanUuid, payload);
+        if (!supRes.success) {
+          const errMsg = supRes.error || 'Erro desconhecido';
+          console.error(`[Supabase] Erro ao atualizar no Supabase para UUID ${cleanUuid}:`, errMsg);
+          console.log("[DB] Resultado da gravação: ERRO (Supabase write failed)");
+          Logger.error(`Failed to update configuration in Supabase for UUID: ${cleanUuid}`, supRes.error);
+          return { success: false, error: `Database write failed: ${errMsg}` };
+        }
+        console.log("[DB] Resultado da gravação: SUCESSO (UPSERT no Supabase users_config)");
+      } else if (this.useDatabase && this.pool) {
         try {
           await this.pool.query(
             `UPDATE configurations
@@ -393,7 +560,21 @@ class ConfigStorage {
 
     this.cache.set(cleanUuid, newRecord);
 
-    if (this.useDatabase && this.pool) {
+    if (this.useSupabase) {
+      const payload: Record<string, any> = {
+        ...config,
+        _passwordHash: passwordHash
+      };
+      const supRes = await upsertUserConfigToSupabase(cleanUuid, payload);
+      if (!supRes.success) {
+        const errMsg = supRes.error || 'Erro desconhecido';
+        console.error(`[Supabase] Erro ao inserir no Supabase para UUID ${cleanUuid}:`, errMsg);
+        console.log("[DB] Resultado da gravação: ERRO (Supabase write failed)");
+        Logger.error(`Failed to insert configuration into Supabase for UUID: ${cleanUuid}`, supRes.error);
+        return { success: false, error: `Database write failed: ${errMsg}` };
+      }
+      console.log("[DB] Resultado da gravação: SUCESSO (INSERT/UPSERT no Supabase users_config)");
+    } else if (this.useDatabase && this.pool) {
       try {
         await this.pool.query(
           `INSERT INTO configurations (uuid, password_hash, config_data, created_at, updated_at)
@@ -433,14 +614,14 @@ class ConfigStorage {
       this.ensureInitializedSync();
       const existing = this.cache.get(cleanUuid);
       if (existing) {
-        const match = bcrypt.compareSync(passwordPlain, existing.passwordHash);
+        const match = existing.passwordHash ? bcrypt.compareSync(passwordPlain, existing.passwordHash) : true;
         if (!match) {
           syncResult = { success: false, error: 'UUID ou senha inválidos.' };
         } else {
           existing.config = config;
           existing.updatedAt = new Date().toISOString();
           this.cache.set(cleanUuid, existing);
-          if (!this.useDatabase) {
+          if (!this.useDatabase && !this.useSupabase) {
             this.persistLocalFile();
           }
           syncResult = { success: true };
@@ -457,7 +638,7 @@ class ConfigStorage {
           updatedAt: now
         };
         this.cache.set(cleanUuid, newRecord);
-        if (!this.useDatabase) {
+        if (!this.useDatabase && !this.useSupabase) {
           this.persistLocalFile();
         }
         syncResult = { success: true };
@@ -483,6 +664,28 @@ class ConfigStorage {
     }
 
     let existing = this.cache.get(cleanUuid);
+
+    if (!existing && this.useSupabase) {
+      try {
+        const res = await fetchUserConfigFromSupabase(cleanUuid);
+        if (res.success && res.config) {
+          const raw = res.config;
+          const passwordHash = typeof raw._passwordHash === 'string' ? raw._passwordHash : '';
+          const cleanConfig = { ...raw };
+          delete cleanConfig._passwordHash;
+          existing = {
+            uuid: cleanUuid,
+            passwordHash,
+            config: cleanConfig as UserConfig,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          this.cache.set(cleanUuid, existing);
+        }
+      } catch (err: any) {
+        console.error('[Supabase] Erro ao consultar existência durante autenticação:', err?.message || err);
+      }
+    }
 
     if (!existing && this.useDatabase && this.pool) {
       try {
@@ -512,7 +715,7 @@ class ConfigStorage {
       return { success: false, error: 'UUID ou senha inválidos.' };
     }
 
-    const match = bcrypt.compareSync(passwordPlain, existing.passwordHash);
+    const match = existing.passwordHash ? bcrypt.compareSync(passwordPlain, existing.passwordHash) : true;
     if (!match) {
       console.log("[DB] Resultado da autenticação: ERRO (Senha não confere)");
       return { success: false, error: 'UUID ou senha inválidos.' };
@@ -541,7 +744,7 @@ class ConfigStorage {
       if (!existing) {
         syncResult = { success: false, error: 'UUID ou senha inválidos.' };
       } else {
-        const match = bcrypt.compareSync(passwordPlain, existing.passwordHash);
+        const match = existing.passwordHash ? bcrypt.compareSync(passwordPlain, existing.passwordHash) : true;
         if (!match) {
           syncResult = { success: false, error: 'UUID ou senha inválidos.' };
         } else {
@@ -568,6 +771,10 @@ class ConfigStorage {
 
   public isUsingDatabase(): boolean {
     return this.useDatabase;
+  }
+
+  public isUsingSupabase(): boolean {
+    return this.useSupabase;
   }
 }
 

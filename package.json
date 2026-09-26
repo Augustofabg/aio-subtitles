@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-assets.js",
-    "test": "tsx test/providerValidation.test.ts && tsx test/persistenceStorage.test.ts && tsx test/formatter.test.ts && tsx test/alignment.test.ts",
+    "test": "tsx test/providerValidation.test.ts && tsx test/persistenceStorage.test.ts && tsx test/formatter.test.ts && tsx test/alignment.test.ts && tsx test/supabase.test.ts",
     "test:providers": "tsx test/providerValidation.test.ts",
     "test:persistence": "tsx test/persistenceStorage.test.ts",
     "test:formatter": "tsx test/formatter.test.ts",
     "test:alignment": "tsx test/alignment.test.ts",
+    "test:supabase": "tsx test/supabase.test.ts",
     "start": "node dist/index.js",
     "render-build": "bash scripts/render-build.sh",
     "lint": "tsc --noEmit"
@@ -28,6 +29,7 @@
   "author": "AIOSubtitles Team",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
     "adm-zip": "^0.5.16",
     "axios": "^1.7.9",
     "bcryptjs": "^3.0.3",
