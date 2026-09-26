@@ -84,6 +84,29 @@ async function runTests() {
   );
   console.log('  ✅ style.css posiciona [✓ / ✗] à esquerda de [👁] com animação scale(0.8) -> 1 em 150ms');
 
+  // --- Test 2.1: Limpeza da Header Bar (Remoção de UUID e + New Config) ---
+  console.log('\n--- Test 2.1: Limpeza da Header Bar (Remoção de UUID badge e + New Config) ---');
+  assert.strictEqual(
+    htmlContent.includes('id="topbar-session-info"'),
+    false,
+    '❌ topbar-session-info deve ser completamente removido de index.html'
+  );
+  assert.strictEqual(
+    appJsContent.includes('btn-topbar-new-config'),
+    false,
+    '❌ btn-topbar-new-config deve ser completamente removido de app.js'
+  );
+  assert.strictEqual(
+    appJsContent.includes('UUID: ${state.uuid'),
+    false,
+    '❌ Badge UUID no topbar deve ser removida de app.js'
+  );
+  assert.ok(
+    cssContent.includes('.topbar {') && cssContent.includes('justify-content: flex-end;'),
+    '❌ .topbar deve ter justify-content: flex-end para navegação limpa sem lacunas'
+  );
+  console.log('  ✅ Header bar 100% limpa: badge de UUID e botão + New Config removidos com sucesso');
+
   // --- Test 3: OpenSubtitles REST Headers e Validador ---
   console.log('\n--- Test 3: Comunicação OpenSubtitles REST v1 & Cabeçalhos Obrigatórios ---');
   const serverPath = path.join(__dirname, '../src/server.ts');

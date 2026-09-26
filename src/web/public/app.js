@@ -2853,32 +2853,6 @@ function updateStats() {
   }
 }
 
-function renderTopbarSession() {
-  const topbar = document.getElementById('topbar-session-info');
-  if (!topbar) return;
-  if (state.uuid && state.isConfigCreated) {
-    topbar.innerHTML = `
-      <span style="font-size: 11.5px; color: var(--text-muted); font-family: monospace; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-        UUID: ${state.uuid.substring(0, 8)}...
-      </span>
-      <button class="btn btn-outline btn-sm" id="btn-topbar-new-config" style="height: 26px; font-size: 11.5px; border-radius: 9999px; padding: 0 10px;" title="Start a fresh configuration">
-        + New Config
-      </button>
-    `;
-    document.getElementById('btn-topbar-new-config')?.addEventListener('click', () => {
-      if (confirm('Start a new configuration with a fresh UUID and password?')) {
-        startNewConfiguration();
-      }
-    });
-  } else {
-    topbar.innerHTML = `
-      <span style="font-size: 11.5px; color: #a78bfa; font-weight: 500; background: rgba(167, 139, 250, 0.1); padding: 3px 8px; border-radius: 6px;">
-        ● New Configuration (Not yet saved)
-      </span>
-    `;
-  }
-}
-
 function renderAll() {
   renderHomeBranding();
   renderServicesState();
@@ -2890,7 +2864,6 @@ function renderAll() {
   renderFormatterState();
   renderAlignmentState();
   renderInstallPageDetails();
-  renderTopbarSession();
   updateStats();
 }
 
