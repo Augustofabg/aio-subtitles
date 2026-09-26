@@ -3,7 +3,7 @@ import { isUuid, configStorage } from '../storage/configStore';
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
   instanceName: 'AIOSubs',
-  instanceDesc: 'Agregador e organizador de legendas',
+  instanceDesc: 'Subtitle aggregator and organizer',
   instanceLogo: '/assets/AIOsubs_logo_wordmark.png',
   instanceVersion: 'v1.0.0',
   providers: {

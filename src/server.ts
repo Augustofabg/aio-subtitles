@@ -44,7 +44,7 @@ export function createServer(): express.Application {
 
   const buildManifest = (configEncoded?: string): StremioManifest => {
     let name = 'AIOSubs';
-    let description = 'Agregador e organizador de legendas dedicado para Stremio e Nuvio.';
+    let description = 'Dedicated subtitle aggregator and organizer for Stremio and Nuvio.';
     let logo = '/assets/AIOsubs_logo_wordmark.png';
     let version = '1.0.0';
 

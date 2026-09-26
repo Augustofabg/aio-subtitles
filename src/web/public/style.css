@@ -1875,7 +1875,7 @@ body {
   border-radius: var(--radius-md);
   padding: 16px 20px;
   min-height: 120px;
-  margin-top: 30px;
+  margin-top: 0px;
   display: flex;
   align-items: center;
 }

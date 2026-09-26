@@ -24,7 +24,7 @@ const MDI_ICONS = {
 
 const DEFAULT_CONFIG = {
   instanceName: 'AIOSubs',
-  instanceDesc: 'Agregador e organizador de legendas',
+  instanceDesc: 'Subtitle aggregator and organizer',
   instanceLogo: '/assets/AIOsubs_logo_wordmark.png',
   instanceVersion: 'v1.0.0',
   providers: {
@@ -57,17 +57,17 @@ const SERVICES_META = {
   opensubtitles: {
     id: 'opensubtitles',
     name: 'OpenSubtitles',
-    helpText: 'Não tem uma chave? <a href="https://www.opensubtitles.com/users/sign_up" target="_blank" rel="noopener noreferrer">Crie uma conta gratuita no OpenSubtitles.com</a> para obter sua chave.'
+    helpText: 'Don\'t have a key? <a href="https://www.opensubtitles.com/users/sign_up" target="_blank" rel="noopener noreferrer">Create a free account on OpenSubtitles.com</a> to get your key.'
   },
   subdl: {
     id: 'subdl',
     name: 'SubDL',
-    helpText: 'Não tem uma chave? <a href="https://subdl.com" target="_blank" rel="noopener noreferrer">Crie uma conta gratuita no SubDL</a> para obter sua chave.'
+    helpText: 'Don\'t have a key? <a href="https://subdl.com" target="_blank" rel="noopener noreferrer">Create a free account on SubDL</a> to get your key.'
   },
   subsource: {
     id: 'subsource',
     name: 'Subsource',
-    helpText: 'Não tem uma chave? <a href="https://subsource.net" target="_blank" rel="noopener noreferrer">Crie uma conta gratuita no Subsource</a> para obter sua chave.'
+    helpText: 'Don\'t have a key? <a href="https://subsource.net" target="_blank" rel="noopener noreferrer">Create a free account on Subsource</a> to get your key.'
   }
 };
 
@@ -586,7 +586,7 @@ function setupHomeActions() {
     renderHomeBranding();
     closeBrandingModal();
     notifyConfigChanged();
-    showToast('Identidade da instância atualizada.');
+    showToast('Instance branding updated.');
   });
 
   document.getElementById('btn-cancel-branding')?.addEventListener('click', closeBrandingModal);
@@ -633,7 +633,7 @@ function setupSignOutModal() {
     window.history.pushState(null, '', '/');
     showLandingView();
     renderAll();
-    showToast('Sessão encerrada com sucesso.');
+    showToast('Signed out successfully.');
   });
 }
 
@@ -658,7 +658,7 @@ function renderHomeBranding() {
   const defaultLogo = '/assets/AIOsubs_logo_wordmark.png';
 
   if (nameEl) nameEl.textContent = state.config.instanceName || 'AIOSubs';
-  if (descEl) descEl.textContent = state.config.instanceDesc || 'Agregador e organizador de legendas';
+  if (descEl) descEl.textContent = state.config.instanceDesc || 'Subtitle aggregator and organizer';
   if (verEl) verEl.textContent = state.config.instanceVersion || 'v1.0.0';
 
   const logoSrc = state.config.instanceLogo && state.config.instanceLogo.trim() !== ''
@@ -722,7 +722,7 @@ function setupServicesActions() {
                 renderFiltersPriority();
                 updateStats();
                 notifyConfigChanged();
-                showToast(`${SERVICES_META[id]?.name} ativado com sucesso.`);
+                showToast(`${SERVICES_META[id]?.name} enabled successfully.`);
               } else {
                 toggle.checked = false;
                 prov.enabled = false;
@@ -834,7 +834,7 @@ function setupServicesActions() {
     updateStats();
     notifyConfigChanged();
     closeServiceConfigModal();
-    showToast(`Configuração de ${SERVICES_META[serviceId]?.name || serviceId} salva.`);
+    showToast(`Settings saved for ${SERVICES_META[serviceId]?.name || serviceId}.`);
   });
 
   document.getElementById('btn-cancel-service-modal')?.addEventListener('click', closeServiceConfigModal);
@@ -883,7 +883,7 @@ function triggerAutoValidation(serviceId, apiKey) {
 
     statusEl.className = 'api-key-validation-indicator loading';
   statusEl.innerHTML = '';
-  statusEl.title = 'Validando chave...';
+  statusEl.title = 'Validating key...';
 
   clearTimeout(state.validationDebounceTimer);
   state.validationDebounceTimer = setTimeout(async () => {
@@ -897,18 +897,18 @@ function triggerAutoValidation(serviceId, apiKey) {
       if (data.valid) {
         statusEl.className = 'api-key-validation-indicator valid';
         statusEl.innerHTML = MDI_ICONS.check16;
-        statusEl.title = 'API Key válida';
+        statusEl.title = 'Valid API Key';
         state.validatedKeys[serviceId] = true;
       } else {
         statusEl.className = 'api-key-validation-indicator invalid';
         statusEl.innerHTML = MDI_ICONS.close16;
-        statusEl.title = data.error || 'API Key inválida';
+        statusEl.title = data.error || 'Invalid API Key';
         state.validatedKeys[serviceId] = false;
       }
     } catch {
       statusEl.className = 'api-key-validation-indicator invalid';
       statusEl.innerHTML = MDI_ICONS.close16;
-      statusEl.title = 'Erro de conexão na validação';
+      statusEl.title = 'Validation connection error';
       state.validatedKeys[serviceId] = false;
     }
   }, 450);
@@ -934,7 +934,7 @@ function setupAddonsActions() {
     btnImport.addEventListener('click', async () => {
       const rawUrl = inputUrl.value.trim();
       if (!rawUrl) {
-        showImportFeedback('Insira a URL do manifest.json de um addon.', false);
+        showImportFeedback('Please enter the manifest.json URL of an addon.', false);
         return;
       }
 
@@ -951,13 +951,13 @@ function setupAddonsActions() {
         const data = await res.json();
 
         if (!res.ok || !data.valid) {
-          showImportFeedback(data.error || 'Este addon não fornece legendas.', false);
+          showImportFeedback(data.error || 'This addon does not provide subtitles.', false);
           return;
         }
 
         const exists = state.config.customAddons.some(a => a.manifestUrl === data.manifestUrl || a.id === data.id);
         if (exists) {
-          showImportFeedback('Este addon já foi importado anteriormente.', false);
+          showImportFeedback('This addon has already been imported.', false);
           return;
         }
 
@@ -981,16 +981,16 @@ function setupAddonsActions() {
         }
 
         inputUrl.value = '';
-        showImportFeedback(`Addon "${newAddon.name}" importado com sucesso!`, true);
+        showImportFeedback(`Addon "${newAddon.name}" imported successfully!`, true);
         renderInstalledAddons();
         renderFiltersPriority();
         updateStats();
         notifyConfigChanged();
       } catch {
-        showImportFeedback('Não foi possível conectar ao endpoint do manifest.', false);
+        showImportFeedback('Could not connect to the manifest endpoint.', false);
       } finally {
         btnImport.disabled = false;
-        btnImport.innerHTML = `${MDI_ICONS.plus16} Importar`;
+        btnImport.innerHTML = `${MDI_ICONS.plus16} Import`;
       }
     });
   }
@@ -1026,7 +1026,7 @@ function setupAddonsActions() {
     setupCustomSelect('wrap-fetching-strategy', 'select-fetching-strategy', (val) => {
       state.config.addonFetchingStrategy = val;
       notifyConfigChanged();
-      showToast(`Estratégia alterada para: ${val === 'sequential' ? 'Sequencial' : 'Default (Paralelo)'}`);
+      showToast(`Strategy changed to: ${val === 'sequential' ? 'Sequential (Priority)' : 'Default (Parallel)'}`);
     });
   }
 
@@ -1035,7 +1035,7 @@ function setupAddonsActions() {
     const name = document.getElementById('edit-addon-name').value.trim();
     const url = document.getElementById('edit-addon-url').value.trim();
     if (!name || !url) {
-      alert('Por favor, preencha o Nome e a Manifest URL (campos obrigatórios).');
+      alert('Please fill in both Name and Manifest URL (required fields).');
       return;
     }
 
@@ -1088,7 +1088,7 @@ function renderInstalledAddons(query = '') {
   if (list.length === 0) {
     container.innerHTML = `
       <div class="empty-addons-box">
-        Nenhum addon importado. Cole a URL de manifest.json acima para adicionar addons de legendas externos.
+        No addons imported yet. Paste a manifest.json URL above to add external subtitle addons.
       </div>
     `;
     return;
@@ -1123,8 +1123,8 @@ function renderInstalledAddons(query = '') {
           <input type="checkbox" class="toggle-addon" data-id="${addon.id}" ${addon.enabled !== false ? 'checked' : ''}>
           <span class="compact-slider"></span>
         </label>
-        <button class="btn-addon-action btn-edit-addon" data-id="${addon.id}" title="Editar informações do addon">${MDI_ICONS.pencil}</button>
-        <button class="btn-addon-action delete btn-delete-addon" data-id="${addon.id}" title="Excluir addon">${MDI_ICONS.trash}</button>
+        <button class="btn-addon-action btn-edit-addon" data-id="${addon.id}" title="Edit addon settings">${MDI_ICONS.pencil}</button>
+        <button class="btn-addon-action delete btn-delete-addon" data-id="${addon.id}" title="Delete addon">${MDI_ICONS.trash}</button>
       </div>
     `;
 
@@ -1138,7 +1138,7 @@ function renderInstalledAddons(query = '') {
     row.querySelector('.btn-copy-sm').addEventListener('click', (e) => {
       e.stopPropagation();
       navigator.clipboard.writeText(addon.manifestUrl);
-      showToast('Manifest URL copiada!');
+      showToast('Manifest URL copied!');
     });
 
     row.querySelector('.btn-edit-addon').addEventListener('click', () => {
@@ -1259,7 +1259,7 @@ function setupFiltersActions() {
     const toVal = toInput ? toInput.value.trim().toLowerCase() : '';
 
     if (!fromVal || !toVal) {
-      alert('Preencha os códigos de origem e destino para o remapeamento (ex: pt-br → pob).');
+      alert('Please provide both source and target language codes for remapping (e.g. pt-br → pob).');
       return;
     }
 
@@ -1437,8 +1437,8 @@ function renderWhitelistTags() {
   if (currentLangs.length === 0) {
     container.innerHTML = `
       <div class="whitelist-empty-notice">
-        <span class="empty-badge">Todos os idiomas permitidos</span>
-        <span class="empty-text">Nenhum filtro de whitelist ativo. Todas as legendas com idiomas válidos serão exibidas.</span>
+        <span class="empty-badge">All languages allowed</span>
+        <span class="empty-text">No whitelist filter active. All subtitles with valid languages will be displayed.</span>
       </div>
     `;
     return;
@@ -1488,7 +1488,7 @@ function renderLanguageChips(filterQuery = '') {
   }
 
   if (list.length === 0) {
-    container.innerHTML = `<div class="empty-chips-msg" style="padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center;">Nenhum idioma encontrado correspondente a "${escapeHtml(filterQuery)}".</div>`;
+    container.innerHTML = `<div class="empty-chips-msg" style="padding: 12px; color: var(--text-muted); font-size: 12px; text-align: center;">No languages found matching "${escapeHtml(filterQuery)}".</div>`;
     return;
   }
 
@@ -1541,7 +1541,7 @@ function renderRemapTable() {
   const entries = Object.entries(remap);
 
   if (entries.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 14px;">Nenhuma regra configurada. Adicione regras abaixo (ex: por → pob).</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 14px;">No rules configured. Add remapping rules below (e.g. por → pob).</td></tr>`;
     return;
   }
 
@@ -1552,7 +1552,7 @@ function renderRemapTable() {
       <td style="color: var(--text-muted); text-align: center; vertical-align: middle;">${MDI_ICONS.arrowRight}</td>
       <td><span class="remap-code-badge">${escapeHtml(to)}</span></td>
       <td style="text-align: right;">
-        <button class="btn-addon-action delete" title="Excluir regra" type="button">${MDI_ICONS.trash}</button>
+        <button class="btn-addon-action delete" title="Delete rule" type="button">${MDI_ICONS.trash}</button>
       </td>
     `;
 
@@ -1584,7 +1584,7 @@ function renderFiltersPriority() {
       activeItemsMap.set(id, {
         id,
         name: SERVICES_META[id]?.name || id,
-        type: 'Serviço Nativo'
+        type: 'Native Service'
       });
     }
   }
@@ -1594,7 +1594,7 @@ function renderFiltersPriority() {
       if (addon && addon.enabled !== false) {
         activeItemsMap.set(addon.id, {
           id: addon.id,
-          name: addon.name || 'Addon de Legendas',
+          name: addon.name || 'Subtitle Addon',
           type: 'Addon Importado'
         });
       }
@@ -1620,8 +1620,8 @@ function renderFiltersPriority() {
   if (orderedList.length === 0) {
     container.innerHTML = `
       <div class="empty-priority-box">
-        Nenhum provedor ou addon ativo no momento.<br>
-        <span style="font-size: 11.5px; color: #6b7280;">Ative serviços com API Key válida na página <b>Services</b> ou importe addons na página <b>Addons</b>.</span>
+        No active providers or addons at the moment.<br>
+        <span style="font-size: 11.5px; color: #6b7280;">Enable services with a valid API Key in <b>Services</b> or import addons in <b>Addons</b>.</span>
       </div>
     `;
     return;
@@ -1637,13 +1637,13 @@ function renderFiltersPriority() {
 
     row.innerHTML = `
       <div class="priority-left">
-        <span class="drag-handle" title="Arraste para reordenar">${MDI_ICONS.drag}</span>
+        <span class="drag-handle" title="Drag to reorder">${MDI_ICONS.drag}</span>
         <span class="priority-name">${escapeHtml(item.name)}</span>
         <span class="priority-type-badge">${item.type}</span>
       </div>
       <div class="priority-right">
-        <button class="btn-priority-move" data-action="up" data-index="${index}" title="Mover para cima" ${index === 0 ? 'disabled style="opacity:0.3;cursor:default"' : ''}>${MDI_ICONS.arrowUp}</button>
-        <button class="btn-priority-move" data-action="down" data-index="${index}" title="Mover para baixo" ${index === orderedList.length - 1 ? 'disabled style="opacity:0.3;cursor:default"' : ''}>${MDI_ICONS.arrowDown}</button>
+        <button class="btn-priority-move" data-action="up" data-index="${index}" title="Move up" ${index === 0 ? 'disabled style="opacity:0.3;cursor:default"' : ''}>${MDI_ICONS.arrowUp}</button>
+        <button class="btn-priority-move" data-action="down" data-index="${index}" title="Move down" ${index === orderedList.length - 1 ? 'disabled style="opacity:0.3;cursor:default"' : ''}>${MDI_ICONS.arrowDown}</button>
       </div>
     `;
 
@@ -1725,7 +1725,7 @@ function setupInstallPageActions() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast('Configurações exportadas com sucesso!');
+    showToast('Settings exported successfully!');
   });
 
     const fileImportInput = document.getElementById('file-import-backup');
@@ -1741,16 +1741,16 @@ function setupInstallPageActions() {
         const parsed = JSON.parse(evt.target.result);
         const configToRestore = parsed.config || parsed;
         if (!configToRestore || typeof configToRestore !== 'object') {
-          throw new Error('Arquivo de backup inválido.');
+          throw new Error('Invalid backup file.');
         }
-        if (confirm('Deseja realmente restaurar as configurações do arquivo de backup? A configuração atual será substituída.')) {
+        if (confirm('Do you really want to restore configuration from this backup file? Current settings will be replaced.')) {
           applyConfigWithMigration(configToRestore);
           renderAll();
           notifyConfigChanged();
-          showToast('Configuração restaurada com sucesso!');
+          showToast('Configuration restored successfully!');
         }
       } catch (err) {
-        alert('Erro ao importar backup: ' + (err.message || 'JSON inválido'));
+        alert('Error importing backup: ' + (err.message || 'Invalid JSON'));
       } finally {
         fileImportInput.value = '';
       }
@@ -1786,7 +1786,7 @@ function setupInstallPageActions() {
 
     if (!pass) {
       if (errBox) {
-        errBox.textContent = 'Informe uma senha para sua configuração.';
+        errBox.textContent = 'Please enter a password for your configuration.';
         errBox.style.display = 'block';
       }
       return;
@@ -1802,7 +1802,7 @@ function setupInstallPageActions() {
 
     if (pass !== confirmPass) {
       if (errBox) {
-        errBox.textContent = 'As senhas não coincidem.';
+        errBox.textContent = 'Passwords do not match.';
         errBox.style.display = 'block';
       }
       return;
@@ -1820,7 +1820,7 @@ function setupInstallPageActions() {
 
     if (missingCreds.length > 0) {
       showMissingCredentialsBanner(missingCreds);
-      showToast('Existem serviços ativados sem credenciais.');
+      showToast('Some enabled services are missing credentials.');
       navigateToPage('services');
       return;
     }
@@ -1844,7 +1844,7 @@ function setupInstallPageActions() {
 
       if (!res.ok || !data.success) {
         if (errBox) {
-          errBox.textContent = data.error || 'Erro ao criar configuração.';
+          errBox.textContent = data.error || 'Failed to create configuration.';
           errBox.style.display = 'block';
         }
         return;
@@ -1862,11 +1862,11 @@ function setupInstallPageActions() {
 
       window.history.replaceState(null, '', `/${state.uuid}/configure`);
       renderInstallPageDetails();
-      showToast('Configuração criada com sucesso!');
+      showToast('Configuration created successfully!');
     } catch {
       if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
       if (errBox) {
-        errBox.textContent = 'Erro ao conectar ao servidor.';
+        errBox.textContent = 'Failed to connect to the server.';
         errBox.style.display = 'block';
       }
     }
@@ -1875,7 +1875,7 @@ function setupInstallPageActions() {
     document.getElementById('btn-copy-uuid')?.addEventListener('click', () => {
     if (state.uuid) {
       navigator.clipboard.writeText(state.uuid);
-      showToast('UUID copiado!');
+      showToast('UUID copied!');
     }
   });
 
@@ -1901,7 +1901,7 @@ function setupInstallPageActions() {
     const input = document.getElementById('final-manifest-url');
     if (input && input.value && state.isConfigCreated && state.uuid) {
       navigator.clipboard.writeText(input.value);
-      showToast('Manifest URL copiada com sucesso!');
+      showToast('Manifest URL copied successfully!');
     }
   });
 
@@ -1916,7 +1916,7 @@ function setupInstallPageActions() {
     if (state.isConfigCreated && state.uuid) {
       openNuvioModal();
     } else {
-      showToast('Crie sua configuração antes de instalar no Nuvio.');
+      showToast('Please create your configuration before installing to Nuvio.');
     }
   });
 
@@ -1965,7 +1965,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
 
   if (missingCreds.length > 0) {
     showMissingCredentialsBanner(missingCreds);
-    showToast('Existem serviços ativados sem credenciais.');
+    showToast('Some enabled services are missing credentials.');
     navigateToPage('services');
     return;
   }
@@ -1973,7 +1973,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
   hideMissingCredentialsBanner();
 
   if (!state.isConfigCreated || !state.uuid || !state.password) {
-    showToast('Defina uma senha na etapa Install para criar e salvar sua configuração.');
+    showToast('Set a password in the Install step to create and save your configuration.');
     navigateToPage('install');
     return;
   }
@@ -1996,7 +1996,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      alert(data.error || 'Não foi possível salvar a configuração.');
+      alert(data.error || 'Could not save configuration.');
       return;
     }
 
@@ -2012,9 +2012,9 @@ async function saveCurrentConfiguration(andShowInstall = false) {
       renderInstallPageDetails();
       navigateToPage('install');
     }
-    showToast('Configuração salva com sucesso!');
+    showToast('Configuration saved successfully!');
   } catch (err) {
-    alert('Erro de conexão ao salvar a configuração.');
+    alert('Connection error while saving configuration.');
   }
 }
 
@@ -2027,7 +2027,7 @@ function renderInstallPageDetails() {
     if (cardSave) cardSave.style.display = 'none';
 
     const inputEl = document.getElementById('final-manifest-url');
-    if (inputEl) inputEl.value = 'Crie sua configuração acima para gerar os links de instalação.';
+    if (inputEl) inputEl.value = 'Create your configuration above to generate installation links.';
 
     const linkStremio = document.getElementById('link-install-stremio');
     if (linkStremio) {
@@ -2135,7 +2135,7 @@ function setupDashboardLoginModal() {
 
     if (!uuid || !pass) {
       if (errBox) {
-        errBox.textContent = 'Preencha o UUID e a senha.';
+        errBox.textContent = 'Please enter both UUID and password.';
         errBox.style.display = 'block';
       }
       return;
@@ -2143,7 +2143,7 @@ function setupDashboardLoginModal() {
 
     if (!isUuid(uuid)) {
       if (errBox) {
-        errBox.textContent = 'Formato de UUID inválido.';
+        errBox.textContent = 'Invalid UUID format.';
         errBox.style.display = 'block';
       }
       return;
@@ -2163,7 +2163,7 @@ function setupDashboardLoginModal() {
 
       if (!res.ok || !data.success) {
         if (errBox) {
-          errBox.textContent = data.error || 'UUID ou senha inválidos.';
+          errBox.textContent = data.error || 'Invalid UUID or password.';
           errBox.style.display = 'block';
         }
         return;
@@ -2183,11 +2183,11 @@ function setupDashboardLoginModal() {
       window.history.pushState(null, '', `/${state.uuid}/configure`);
       navigateToPage('home');
       renderAll();
-      showToast('Configuração carregada com sucesso!');
+      showToast('Configuration loaded successfully!');
     } catch {
       if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
       if (errBox) {
-        errBox.textContent = 'Erro ao conectar ao servidor.';
+        errBox.textContent = 'Failed to connect to the server.';
         errBox.style.display = 'block';
       }
     }
@@ -2227,7 +2227,7 @@ function setupModals() {
 
     if (!uuid || !pass) {
       if (errBox) {
-        errBox.textContent = 'UUID ou senha inválidos.';
+        errBox.textContent = 'Invalid UUID or password.';
         errBox.style.display = 'block';
       }
       return;
@@ -2243,7 +2243,7 @@ function setupModals() {
 
       if (!res.ok || !data.success) {
         if (errBox) {
-          errBox.textContent = 'UUID ou senha inválidos.';
+          errBox.textContent = 'Invalid UUID or password.';
           errBox.style.display = 'block';
         }
         return;
@@ -2258,10 +2258,10 @@ function setupModals() {
       renderAll();
       closeLoadConfigModal();
       window.history.replaceState(null, '', `/${state.uuid}/configure`);
-      showToast('Configuração carregada com sucesso!');
+      showToast('Configuration loaded successfully!');
     } catch {
       if (errBox) {
-        errBox.textContent = 'UUID ou senha inválidos.';
+        errBox.textContent = 'Invalid UUID or password.';
         errBox.style.display = 'block';
       }
     }
@@ -2296,7 +2296,7 @@ async function openNuvioModal() {
       if (res.ok) {
         const data = await res.json();
         if (data.dataUrl) {
-          qrBox.innerHTML = `<img src="${data.dataUrl}" alt="QR Code de Instalação" width="180" height="180" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: block; margin: 0 auto; background: #fff; padding: 4px;">`;
+          qrBox.innerHTML = `<img src="${data.dataUrl}" alt="Installation QR Code" width="180" height="180" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: block; margin: 0 auto; background: #fff; padding: 4px;">`;
         } else {
           throw new Error('Sem dataUrl');
         }
@@ -2339,19 +2339,19 @@ function updateStats() {
   const statLangs = document.getElementById('stat-active-langs');
   const statDedup = document.getElementById('stat-dedup-status');
 
-  if (statSvc) statSvc.textContent = `${activeSvcCount} Ativos`;
-  if (statAddon) statAddon.textContent = `${activeAddonCount} Instalados`;
+  if (statSvc) statSvc.textContent = `${activeSvcCount} Active`;
+  if (statAddon) statAddon.textContent = `${activeAddonCount} Installed`;
   if (statLangs) {
     const langs = state.config.languages || [];
-    statLangs.textContent = langs.length > 0 ? langs.slice(0, 3).map(l => l.toUpperCase()).join(', ') : 'Nenhum';
+    statLangs.textContent = langs.length > 0 ? langs.slice(0, 3).map(l => l.toUpperCase()).join(', ') : 'None';
   }
   if (statDedup) {
     if (state.config.deduplication === false) {
-      statDedup.textContent = 'Desativada';
+      statDedup.textContent = 'Disabled';
       statDedup.className = 'stat-value';
     } else {
-      const strat = state.config.deduplicationStrategy === 'hash' ? 'Hash' : (state.config.deduplicationStrategy === 'fuzzy' ? 'Fuzzy' : 'Ambos');
-      statDedup.textContent = `Ativada (${strat})`;
+      const strat = state.config.deduplicationStrategy === 'hash' ? 'Hash' : (state.config.deduplicationStrategy === 'fuzzy' ? 'Fuzzy' : 'Both');
+      statDedup.textContent = `Enabled (${strat})`;
       statDedup.className = 'stat-value highlight';
     }
   }
