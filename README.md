@@ -225,6 +225,14 @@ npm run test:supabase       # Cloud persistence and bcrypt security
 npm run test:validation     # Interface flow and OpenSubtitles headers
 ```
 
+## ⚠️ Disclaimer
+
+AIOSubs is a tool for aggregating and managing data from other Stremio subtitle addons. It does not host, store, or distribute any content. The developer does not endorse or promote access to copyrighted content. Users are solely responsible for complying with all applicable laws and the terms of service of any addons or services they use with AIOSubs.
+
+## 🙏 Credits
+
+This project wouldn't be possible without the foundational work of many others in the community, especially those who develop the addons that AIOSubs integrates. Special thanks to **[AIOStreams](https://github.com/Viren070/AIOStreams)**, the project that served as a direct inspiration for AIOSubs' interface and aggregation philosophy, to the developers of all integrated addons, and to the open-source projects that inspired parts of AIOSubs' design.
+
 ---
 
 <div align="center">
