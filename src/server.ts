@@ -317,9 +317,12 @@ export function createServer(): express.Application {
   });
 
   const handleConfigSave = async (req: Request, res: Response): Promise<void> => {
-    const uuid = String(req.body?.uuid || '').trim();
+    const rawUuid = req.params?.uuid || req.body?.uuid || '';
+    const uuid = String(rawUuid).trim();
     const password = String(req.body?.password || '').trim();
     const config = req.body?.config;
+
+    console.log(`[HTTP] Recebida requisição de gravação para UUID: ${uuid || '(não informado)'}`);
 
     if (!uuid || !isUuid(uuid)) {
       res.status(400).json({ success: false, error: 'UUID inválido.' });
@@ -338,7 +341,9 @@ export function createServer(): express.Application {
 
     const saveResult = await configStorage.saveConfigAsync(uuid, password, config);
     if (!saveResult.success) {
-      res.status(401).json({ success: false, error: saveResult.error || 'Não foi possível salvar a configuração.' });
+      const isDbError = saveResult.error?.includes('Database write failed');
+      const statusCode = isDbError ? 500 : 401;
+      res.status(statusCode).json({ success: false, error: saveResult.error || 'Não foi possível salvar a configuração.' });
       return;
     }
 
@@ -348,7 +353,7 @@ export function createServer(): express.Application {
     const stremioUrl = `stremio://${cleanHost}`;
     const stremioWebUrl = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`;
 
-    res.json({
+    res.status(200).json({
       success: true,
       uuid,
       manifestUrl,
@@ -359,11 +364,17 @@ export function createServer(): express.Application {
 
   app.post('/api/config/save', handleConfigSave);
   app.post('/api/config/create', handleConfigSave);
+  app.post('/api/save', handleConfigSave);
+  app.post('/api/create', handleConfigSave);
   app.post('/save', handleConfigSave);
   app.post('/create', handleConfigSave);
+  app.put('/api/config/:uuid', handleConfigSave);
+  app.put('/api/save/:uuid', handleConfigSave);
+  app.put('/api/config', handleConfigSave);
 
   const handleConfigLoad = async (req: Request, res: Response): Promise<void> => {
-    const uuid = String(req.body?.uuid || '').trim();
+    const rawUuid = req.params?.uuid || req.body?.uuid || '';
+    const uuid = String(rawUuid).trim();
     const password = String(req.body?.password || '').trim();
 
     if (!uuid || !isUuid(uuid) || !password) {
@@ -377,7 +388,7 @@ export function createServer(): express.Application {
       return;
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
       uuid,
       config: authResult.config
@@ -386,7 +397,10 @@ export function createServer(): express.Application {
 
   app.post('/api/config/load', handleConfigLoad);
   app.post('/api/config/login', handleConfigLoad);
+  app.post('/api/load', handleConfigLoad);
+  app.post('/api/login', handleConfigLoad);
   app.post('/login', handleConfigLoad);
+  app.post('/load', handleConfigLoad);
 
   app.get('/', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, 'index.html'));

@@ -99,6 +99,38 @@ async function runPersistenceTests() {
     assert(false, `POST /api/config/create falhou: ${err.message}`);
   }
 
+  // 5b. Test POST /api/save alias
+  try {
+    const apiSaveRes = await axios.post(`${BASE_URL}/api/save`, {
+      uuid: testUuid2,
+      password: 'password123',
+      config: {
+        ...DEFAULT_USER_CONFIG,
+        instanceName: 'Updated via /api/save'
+      }
+    });
+    assert(apiSaveRes.status === 200 && apiSaveRes.data.success, 'POST /api/save responde com status 200 e success: true');
+  } catch (err: any) {
+    assert(false, `POST /api/save falhou: ${err.message}`);
+  }
+
+  // 5c. Test PUT /api/config/:uuid
+  try {
+    const putRes = await axios.put(`${BASE_URL}/api/config/${testUuid2}`, {
+      password: 'password123',
+      config: {
+        ...DEFAULT_USER_CONFIG,
+        instanceName: 'Updated via PUT /api/config/:uuid'
+      }
+    });
+    assert(putRes.status === 200 && putRes.data.success, 'PUT /api/config/:uuid atualiza configuração com sucesso');
+
+    const manifestPut = await axios.get(`${BASE_URL}/${testUuid2}/manifest.json`);
+    assert(manifestPut.data.name === 'Updated via PUT /api/config/:uuid', 'Manifest reflete alteração realizada via PUT');
+  } catch (err: any) {
+    assert(false, `PUT /api/config/:uuid falhou: ${err.message}`);
+  }
+
   // 6. Test Password Security (Plain text never stored)
   console.log('\n--- 2. Segurança de Senhas (bcrypt) ---');
   const storeFilePath = path.join(__dirname, '..', 'data', 'configurations.json');

@@ -239,7 +239,7 @@ async function loadInitialConfiguration() {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   const firstPart = pathParts.length > 0 ? pathParts[0].toLowerCase() : '';
 
-    if (firstPart === 'dashboard') {
+  if (firstPart === 'dashboard') {
     showLandingView();
     setTimeout(() => {
       openDashboardLoginModal();
@@ -247,19 +247,9 @@ async function loadInitialConfiguration() {
     return;
   }
 
-    if (firstPart === 'configure') {
-    state.isConfigCreated = false;
-    state.uuid = '';
-    state.password = '';
-    applyConfigWithMigration(DEFAULT_CONFIG);
-    state.lastSavedConfigJson = '';
-    showWizardView();
-    navigateToPage('home');
-    return;
-  }
-
-    if (firstPart && isUuid(firstPart)) {
+  if (firstPart && isUuid(firstPart)) {
     state.uuid = firstPart;
+    localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
     const storedPass = localStorage.getItem(`aiosubtitles_pass_${state.uuid}`) || '';
     if (storedPass) {
       state.password = storedPass;
@@ -279,8 +269,9 @@ async function loadInitialConfiguration() {
           checkSavedDraft();
           return;
         }
-      } catch {
-              }
+      } catch (err) {
+        console.error('[Session] Error loading config from URL UUID:', err);
+      }
     }
     // UUID present but password missing or invalid: show landing & open dashboard login modal
     showLandingView();
@@ -290,9 +281,63 @@ async function loadInitialConfiguration() {
     return;
   }
 
+  if (firstPart === 'configure') {
+    const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
+    if (sessionUuid && isUuid(sessionUuid)) {
+      const storedPass = localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '';
+      if (storedPass) {
+        try {
+          const res = await fetch('/api/config/load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: sessionUuid, password: storedPass })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.config) {
+            state.uuid = sessionUuid;
+            state.password = storedPass;
+            state.isConfigCreated = true;
+            applyConfigWithMigration(data.config);
+            state.lastSavedConfigJson = JSON.stringify(state.config);
+            window.history.replaceState(null, '', `/${state.uuid}/configure`);
+            showWizardView();
+            navigateToPage('home');
+            checkSavedDraft();
+            return;
+          }
+        } catch (err) {
+          console.error('[Session] Error restoring config for session UUID:', err);
+        }
+      }
+      state.uuid = sessionUuid;
+      state.isConfigCreated = true;
+      window.history.replaceState(null, '', `/${state.uuid}/configure`);
+      showWizardView();
+      navigateToPage('home');
+      return;
+    }
+
     state.isConfigCreated = false;
-  state.uuid = '';
-  state.password = '';
+    state.uuid = '';
+    state.password = '';
+    applyConfigWithMigration(DEFAULT_CONFIG);
+    state.lastSavedConfigJson = '';
+    showWizardView();
+    navigateToPage('home');
+    return;
+  }
+
+  const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
+  const storedPass = sessionUuid ? (localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '') : '';
+  if (sessionUuid && isUuid(sessionUuid)) {
+    state.uuid = sessionUuid;
+    state.password = storedPass;
+    state.isConfigCreated = true;
+  } else {
+    state.isConfigCreated = false;
+    state.uuid = '';
+    state.password = '';
+  }
   applyConfigWithMigration(DEFAULT_CONFIG);
   state.lastSavedConfigJson = '';
   showLandingView();
@@ -412,7 +457,43 @@ function applyConfigWithMigration(parsed) {
 }
 
 function setupLandingActions() {
-  document.getElementById('btn-landing-configure')?.addEventListener('click', () => {
+  document.getElementById('btn-landing-configure')?.addEventListener('click', async () => {
+    const sessionUuid = state.uuid || localStorage.getItem('aiosubtitles_current_uuid');
+    const storedPass = sessionUuid ? (state.password || localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '') : '';
+
+    if (sessionUuid && isUuid(sessionUuid)) {
+      state.uuid = sessionUuid;
+      state.isConfigCreated = true;
+      if (storedPass) {
+        state.password = storedPass;
+        try {
+          const res = await fetch('/api/config/load', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uuid: sessionUuid, password: storedPass })
+          });
+          const data = await res.json();
+          if (res.ok && data.success && data.config) {
+            applyConfigWithMigration(data.config);
+            state.lastSavedConfigJson = JSON.stringify(state.config);
+            window.history.pushState(null, '', `/${state.uuid}/configure`);
+            showWizardView();
+            navigateToPage('home');
+            renderAll();
+            checkSavedDraft();
+            return;
+          }
+        } catch (err) {
+          console.error('[Session] Error loading config:', err);
+        }
+      }
+      window.history.pushState(null, '', `/${state.uuid}/configure`);
+      showWizardView();
+      navigateToPage('home');
+      renderAll();
+      return;
+    }
+
     state.isConfigCreated = false;
     state.uuid = '';
     state.password = '';
@@ -1828,42 +1909,44 @@ function setupInstallPageActions() {
     const btn = document.getElementById('btn-create-config');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
 
-    const newUuid = generateUuid();
+    // Preserve existing UUID if already set and valid, never overwrite with random UUID
+    const targetUuid = (state.uuid && isUuid(state.uuid)) ? state.uuid : generateUuid();
+
     try {
       const res = await fetch('/api/config/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uuid: newUuid,
+          uuid: targetUuid,
           password: pass,
           config: state.config
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
 
       if (!res.ok || !data.success) {
         if (errBox) {
-          errBox.textContent = data.error || 'Failed to create configuration.';
+          errBox.textContent = data.error || `Server error (${res.status}): Failed to create configuration.`;
           errBox.style.display = 'block';
         }
         return;
       }
 
-      state.uuid = newUuid;
+      state.uuid = targetUuid;
       state.password = pass;
       state.isConfigCreated = true;
       state.lastSavedConfigJson = JSON.stringify(state.config);
 
+      localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
       if (remember) {
-        localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
         localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
       }
 
       window.history.replaceState(null, '', `/${state.uuid}/configure`);
       renderInstallPageDetails(true);
       showToast('Configuration created successfully!');
-    } catch {
+    } catch (err) {
       if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
       if (errBox) {
         errBox.textContent = 'Failed to connect to the server.';
@@ -1972,7 +2055,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
 
   hideMissingCredentialsBanner();
 
-  if (!state.isConfigCreated || !state.uuid) {
+  if (!state.isConfigCreated || !state.uuid || !isUuid(state.uuid)) {
     showToast('Set a password in the Install step to create and save your configuration.');
     navigateToPage('install');
     return;
@@ -1992,6 +2075,8 @@ async function saveCurrentConfiguration(andShowInstall = false) {
   if (!state.password) {
     showToast('Please enter your password to save changes.');
     navigateToPage('install');
+    const passInput = document.getElementById('input-user-password');
+    if (passInput) passInput.focus();
     return;
   }
 
@@ -2011,7 +2096,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
         config: state.config
       })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
 
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -2019,10 +2104,13 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     }
 
     if (!res.ok || !data.success) {
-      showToast(data.error || 'Could not save configuration.');
+      const errMsg = data.error || `Server error (${res.status}): Could not save configuration.`;
+      console.error('[Save Error]', res.status, errMsg);
+      showToast(errMsg);
       return;
     }
 
+    state.isConfigCreated = true;
     state.lastSavedConfigJson = JSON.stringify(state.config);
     if (state.uuid) {
       localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
@@ -2036,11 +2124,12 @@ async function saveCurrentConfiguration(andShowInstall = false) {
       navigateToPage('install');
     }
     showToast('Configuration saved successfully!');
-  } catch {
+  } catch (err) {
     if (saveBtn) {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Save';
     }
+    console.error('[Save Network Error]', err);
     showToast('Connection error while saving configuration.');
   }
 }
@@ -2207,7 +2296,7 @@ function setupDashboardLoginModal() {
     }
 
     const btn = document.getElementById('btn-submit-dashboard-login');
-    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in...'; }
 
     try {
       const res = await fetch('/api/config/load', {
@@ -2347,7 +2436,7 @@ async function openNuvioModal() {
 
   const qrBox = document.getElementById('qr-code-box');
   if (qrBox) {
-    qrBox.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:180px;color:var(--text-muted);font-size:12px;">Gerando QR Code...</div>';
+    qrBox.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:180px;color:var(--text-muted);font-size:12px;">Generating QR Code...</div>';
     try {
       const res = await fetch(`/api/qrcode?text=${encodeURIComponent(manifestUrl)}`);
       if (res.ok) {
