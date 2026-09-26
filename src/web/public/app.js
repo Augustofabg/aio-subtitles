@@ -29,9 +29,9 @@ const MDI_ICONS = {
 // 1. Default Configuration & Services Metadata
 // =============================================================================
 const DEFAULT_CONFIG = {
-  instanceName: 'AIOSubtitles',
+  instanceName: 'AIOSubs',
   instanceDesc: 'Agregador e organizador de legendas',
-  instanceLogo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
+  instanceLogo: '/assets/AIOsubs_logo_wordmark.png',
   instanceVersion: 'v1.0.0',
   providers: {
     'opensubtitles': { enabled: false, apiKey: '' },
@@ -103,11 +103,13 @@ const FALLBACK_LANGUAGES = [
 ];
 
 // =============================================================================
-// 2. Application State
+// 2. Application State & Views
 // =============================================================================
 const PAGES_ORDER = ['home', 'services', 'addons', 'filters', 'install'];
 
 const state = {
+  activeView: 'landing', // 'landing' | 'wizard'
+  isConfigCreated: false,
   activePage: 'home',
   activeFilterTab: 'whitelist',
   uuid: '',
@@ -119,34 +121,28 @@ const state = {
   validationDebounceTimer: null
 };
 
+function showLandingView() {
+  state.activeView = 'landing';
+  const landing = document.getElementById('view-landing');
+  const appLayout = document.getElementById('app-layout');
+  if (landing) landing.style.display = 'flex';
+  if (appLayout) appLayout.style.display = 'none';
+}
+
+function showWizardView() {
+  state.activeView = 'wizard';
+  const landing = document.getElementById('view-landing');
+  const appLayout = document.getElementById('app-layout');
+  if (landing) landing.style.display = 'none';
+  if (appLayout) appLayout.style.display = 'flex';
+}
+
 function getNoDraftsSetting() {
   return localStorage.getItem('aiosubtitles_no_drafts') === 'true';
 }
 
 function notifyConfigChanged() {
   const isDirty = Boolean(state.lastSavedConfigJson && JSON.stringify(state.config) !== state.lastSavedConfigJson);
-  const banner = document.getElementById('unsaved-changes-banner');
-  const btnSave = document.getElementById('btn-topbar-save');
-
-  if (banner) {
-    if (isDirty) {
-      if (banner.style.display === 'none' || banner.classList.contains('banner-leaving')) {
-        banner.classList.remove('banner-leaving');
-        banner.style.display = 'inline-flex';
-      }
-    } else {
-      if (banner.style.display !== 'none' && !banner.classList.contains('banner-leaving')) {
-        banner.classList.add('banner-leaving');
-        setTimeout(() => {
-          banner.style.display = 'none';
-          banner.classList.remove('banner-leaving');
-        }, 180);
-      }
-    }
-  }
-  if (btnSave) {
-    btnSave.classList.toggle('has-unsaved', isDirty);
-  }
 
   if (isDirty) {
     if (!getNoDraftsSetting() && state.uuid) {
@@ -226,6 +222,7 @@ function isUuid(str) {
 // 4. Initialization
 // =============================================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  setupLandingActions();
   setupNavigation();
   setupTopbarActions();
   setupHomeActions();
@@ -234,6 +231,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupFiltersActions();
   setupInstallPageActions();
   setupModals();
+  setupDashboardLoginModal();
+  setupSignOutModal();
 
   await loadInitialConfiguration();
 
@@ -257,15 +256,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =============================================================================
 async function loadInitialConfiguration() {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
-  let configParamFromUrl = null;
+  const firstPart = pathParts.length > 0 ? pathParts[0].toLowerCase() : '';
 
-  if (pathParts.length > 0 && pathParts[0] !== 'configure') {
-    configParamFromUrl = pathParts[0];
+  // 1. Direct route: /dashboard
+  if (firstPart === 'dashboard') {
+    showLandingView();
+    setTimeout(() => {
+      openDashboardLoginModal();
+    }, 150);
+    return;
   }
 
-  // 1. If URL has a UUID
-  if (configParamFromUrl && isUuid(configParamFromUrl)) {
-    state.uuid = configParamFromUrl.toLowerCase();
+  // 2. Direct route: /configure (New configuration wizard)
+  if (firstPart === 'configure') {
+    state.isConfigCreated = false;
+    state.uuid = '';
+    state.password = '';
+    applyConfigWithMigration(DEFAULT_CONFIG);
+    state.lastSavedConfigJson = '';
+    showWizardView();
+    navigateToPage('home');
+    return;
+  }
+
+  // 3. Direct route with UUID: /:uuid or /:uuid/configure
+  if (firstPart && isUuid(firstPart)) {
+    state.uuid = firstPart;
     const storedPass = localStorage.getItem(`aiosubtitles_pass_${state.uuid}`) || '';
     if (storedPass) {
       state.password = storedPass;
@@ -277,59 +293,33 @@ async function loadInitialConfiguration() {
         });
         const data = await res.json();
         if (res.ok && data.success && data.config) {
+          state.isConfigCreated = true;
           applyConfigWithMigration(data.config);
           state.lastSavedConfigJson = JSON.stringify(state.config);
+          showWizardView();
+          navigateToPage('home');
           checkSavedDraft();
           return;
         }
       } catch {
-        // Fallback
-      }
-    } else {
-      // UUID in URL but no password in this browser: prompt user to enter password
-      state.password = '';
-      setTimeout(() => {
-        openLoadConfigModal();
-      }, 350);
-      applyConfigWithMigration(DEFAULT_CONFIG);
-      state.lastSavedConfigJson = JSON.stringify(state.config);
-      return;
-    }
-  }
-
-  // 2. Check localStorage for existing UUID
-  const localUuid = localStorage.getItem('aiosubtitles_current_uuid');
-  if (localUuid && isUuid(localUuid)) {
-    state.uuid = localUuid;
-    const storedPass = localStorage.getItem(`aiosubtitles_pass_${localUuid}`) || '';
-    if (storedPass) {
-      state.password = storedPass;
-      try {
-        const res = await fetch('/api/config/load', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uuid: state.uuid, password: storedPass })
-        });
-        const data = await res.json();
-        if (res.ok && data.success && data.config) {
-          applyConfigWithMigration(data.config);
-          state.lastSavedConfigJson = JSON.stringify(state.config);
-          checkSavedDraft();
-          return;
-        }
-      } catch {
-        // Fallback
+        // Fallback to login modal
       }
     }
+    // UUID present but password missing or invalid: show landing & open dashboard login modal
+    showLandingView();
+    setTimeout(() => {
+      openDashboardLoginModal(state.uuid);
+    }, 150);
+    return;
   }
 
-  // 3. Brand new session: generate UUID and Password
-  state.uuid = generateUuid();
-  state.password = generateSecurePassword();
-  localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
-  localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
+  // 4. Default root landing page (/)
+  state.isConfigCreated = false;
+  state.uuid = '';
+  state.password = '';
   applyConfigWithMigration(DEFAULT_CONFIG);
-  state.lastSavedConfigJson = JSON.stringify(state.config);
+  state.lastSavedConfigJson = '';
+  showLandingView();
 }
 
 function checkSavedDraft() {
@@ -448,6 +438,27 @@ function applyConfigWithMigration(parsed) {
 // =============================================================================
 // 6. Navigation & Topbar
 // =============================================================================
+// =============================================================================
+// 6. Navigation & Landing Actions
+// =============================================================================
+function setupLandingActions() {
+  document.getElementById('btn-landing-configure')?.addEventListener('click', () => {
+    state.isConfigCreated = false;
+    state.uuid = '';
+    state.password = '';
+    applyConfigWithMigration(DEFAULT_CONFIG);
+    state.lastSavedConfigJson = '';
+    window.history.pushState(null, '', '/configure');
+    showWizardView();
+    navigateToPage('home');
+    renderAll();
+  });
+
+  document.getElementById('btn-landing-dashboard')?.addEventListener('click', () => {
+    openDashboardLoginModal();
+  });
+}
+
 function setupNavigation() {
   const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
   navItems.forEach(item => {
@@ -485,12 +496,6 @@ function navigateToPage(pageId) {
   if (!PAGES_ORDER.includes(pageId)) return;
   if (state.activePage === pageId) return;
 
-  const oldIdx = PAGES_ORDER.indexOf(state.activePage);
-  const newIdx = PAGES_ORDER.indexOf(pageId);
-  const isForward = newIdx >= oldIdx;
-  const fadeOutClass = isForward ? 'page-fade-out-left' : 'page-fade-out-right';
-  const fadeInClass = isForward ? 'anim-forward' : 'anim-backward';
-
   const currentView = document.getElementById(`page-${state.activePage}`);
   const targetView = document.getElementById(`page-${pageId}`);
 
@@ -506,46 +511,47 @@ function navigateToPage(pageId) {
     item.classList.toggle('active', item.getAttribute('data-page') === pageId);
   });
 
+  const newIdx = PAGES_ORDER.indexOf(pageId);
   const btnPrev = document.getElementById('btn-prev');
   const btnNext = document.getElementById('btn-next');
   if (btnPrev) btnPrev.disabled = newIdx === 0;
   if (btnNext) btnNext.disabled = newIdx === PAGES_ORDER.length - 1;
 
   if (currentView && currentView !== targetView && currentView.classList.contains('active')) {
-    currentView.classList.remove('anim-forward', 'anim-backward', 'page-fade-out-left', 'page-fade-out-right');
-    currentView.classList.add(fadeOutClass);
+    currentView.style.opacity = '0';
+    currentView.style.transition = 'opacity 60ms ease-out';
 
     setTimeout(() => {
       document.querySelectorAll('.page-view').forEach(view => {
-        view.classList.remove('page-fade-out-left', 'page-fade-out-right', 'anim-forward', 'anim-backward');
-        if (view.id === `page-${pageId}`) {
-          view.classList.add('active', fadeInClass);
-          setTimeout(() => {
-            view.classList.remove('anim-forward', 'anim-backward');
-          }, 200);
-        } else {
-          view.classList.remove('active');
-        }
+        view.classList.remove('active');
+        view.style.opacity = '';
+        view.style.transition = '';
       });
+
+      if (targetView) {
+        targetView.classList.remove('active');
+        void targetView.offsetWidth; // Trigger reflow for smooth progressive slide-up
+        targetView.classList.add('active');
+      }
 
       if (pageId === 'filters') {
         switchFilterTab(state.activeFilterTab || 'whitelist');
       } else if (pageId === 'install') {
         renderInstallPageDetails();
       }
-    }, 90);
+    }, 60);
   } else {
     document.querySelectorAll('.page-view').forEach(view => {
-      view.classList.remove('page-fade-out-left', 'page-fade-out-right', 'anim-forward', 'anim-backward');
-      if (view.id === `page-${pageId}`) {
-        view.classList.add('active', fadeInClass);
-        setTimeout(() => {
-          view.classList.remove('anim-forward', 'anim-backward');
-        }, 200);
-      } else {
-        view.classList.remove('active');
-      }
+      view.classList.remove('active');
+      view.style.opacity = '';
+      view.style.transition = '';
     });
+
+    if (targetView) {
+      targetView.classList.remove('active');
+      void targetView.offsetWidth;
+      targetView.classList.add('active');
+    }
 
     if (pageId === 'filters') {
       switchFilterTab(state.activeFilterTab || 'whitelist');
@@ -556,18 +562,6 @@ function navigateToPage(pageId) {
 }
 
 function setupTopbarActions() {
-  document.getElementById('btn-topbar-save')?.addEventListener('click', () => {
-    saveConfigurationAndShowInstall();
-  });
-
-  document.getElementById('btn-home-header-save')?.addEventListener('click', () => {
-    saveConfigurationAndShowInstall();
-  });
-
-  document.getElementById('btn-home-save-install')?.addEventListener('click', () => {
-    saveConfigurationAndShowInstall();
-  });
-
   document.getElementById('btn-trigger-load-config')?.addEventListener('click', () => {
     openLoadConfigModal();
   });
@@ -605,19 +599,6 @@ function setupTopbarActions() {
       renderAll();
       notifyConfigChanged();
       showToast('Alterações não salvas descartadas.');
-    }
-  });
-
-  // Wizard nav: ↺ Reset changes button
-  document.getElementById('btn-reset-draft')?.addEventListener('click', () => {
-    if (state.lastSavedConfigJson) {
-      applyConfigWithMigration(JSON.parse(state.lastSavedConfigJson));
-      if (state.uuid) {
-        localStorage.removeItem(`aiosubtitles_draft_${state.uuid}`);
-      }
-      renderAll();
-      notifyConfigChanged();
-      showToast('Alterações restauradas para a última versão salva.');
     }
   });
 
@@ -686,11 +667,11 @@ function closeModal(modalId) {
   modal.classList.add('closing');
   setTimeout(() => {
     modal.classList.remove('active', 'closing');
-  }, 180);
+  }, 120);
 }
 
 // =============================================================================
-// 8. Home Actions
+// 8. Home Actions & Sign Out
 // =============================================================================
 function setupHomeActions() {
   document.getElementById('btn-edit-instance-name')?.addEventListener('click', openBrandingModal);
@@ -717,25 +698,49 @@ function setupHomeActions() {
   document.getElementById('btn-cancel-branding')?.addEventListener('click', closeBrandingModal);
   document.getElementById('btn-close-branding-modal')?.addEventListener('click', closeBrandingModal);
 
-  // Sign out button
+  // Sign out button triggers confirmation modal
   document.getElementById('btn-home-signout')?.addEventListener('click', () => {
-    if (confirm('Deseja realmente reiniciar a sessão local? Uma nova configuração limpa será criada.')) {
-      if (state.uuid) {
-        localStorage.removeItem(`aiosubtitles_pass_${state.uuid}`);
-        localStorage.removeItem(`aiosubtitles_draft_${state.uuid}`);
-      }
-      localStorage.removeItem('aiosubtitles_current_uuid');
-      state.uuid = generateUuid();
-      state.password = generateSecurePassword();
-      localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
-      localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
-      applyConfigWithMigration(DEFAULT_CONFIG);
-      state.lastSavedConfigJson = JSON.stringify(state.config);
-      window.history.replaceState(null, '', `/${state.uuid}/configure`);
-      renderAll();
-      notifyConfigChanged();
-      showToast('Nova sessão iniciada com sucesso.');
+    openModal('modal-signout-confirm');
+  });
+}
+
+function setupSignOutModal() {
+  document.getElementById('btn-close-signout-modal')?.addEventListener('click', () => {
+    closeModal('modal-signout-confirm');
+  });
+
+  document.getElementById('btn-cancel-signout')?.addEventListener('click', () => {
+    closeModal('modal-signout-confirm');
+  });
+
+  document.getElementById('btn-confirm-signout')?.addEventListener('click', () => {
+    const allDevices = document.getElementById('check-signout-all-devices')?.checked;
+
+    if (state.uuid) {
+      localStorage.removeItem(`aiosubtitles_pass_${state.uuid}`);
+      localStorage.removeItem(`aiosubtitles_draft_${state.uuid}`);
     }
+    localStorage.removeItem('aiosubtitles_current_uuid');
+
+    if (allDevices) {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('aiosubtitles_')) {
+          localStorage.removeItem(key);
+        }
+      });
+    }
+
+    state.uuid = '';
+    state.password = '';
+    state.isConfigCreated = false;
+    state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    state.lastSavedConfigJson = '';
+
+    closeModal('modal-signout-confirm');
+    window.history.pushState(null, '', '/');
+    showLandingView();
+    renderAll();
+    showToast('Sessão encerrada com sucesso.');
   });
 }
 
@@ -756,11 +761,30 @@ function renderHomeBranding() {
   const descEl = document.getElementById('home-instance-desc');
   const verEl = document.getElementById('home-instance-version');
   const imgEl = document.getElementById('home-logo-img');
+  const sidebarImgEl = document.getElementById('sidebar-brand-img');
+  const defaultLogo = '/assets/AIOsubs_logo_wordmark.png';
 
-  if (nameEl) nameEl.textContent = state.config.instanceName || 'AIOSubtitles';
-  if (descEl) descEl.textContent = state.config.instanceDesc || 'Agregador de legendas';
+  if (nameEl) nameEl.textContent = state.config.instanceName || 'AIOSubs';
+  if (descEl) descEl.textContent = state.config.instanceDesc || 'Agregador e organizador de legendas';
   if (verEl) verEl.textContent = state.config.instanceVersion || 'v1.0.0';
-  if (imgEl && state.config.instanceLogo) imgEl.src = state.config.instanceLogo;
+
+  const logoSrc = state.config.instanceLogo && state.config.instanceLogo.trim() !== ''
+    ? state.config.instanceLogo.trim()
+    : defaultLogo;
+
+  if (imgEl) {
+    imgEl.src = logoSrc;
+    imgEl.onerror = () => {
+      imgEl.src = defaultLogo;
+    };
+  }
+
+  if (sidebarImgEl) {
+    sidebarImgEl.src = logoSrc;
+    sidebarImgEl.onerror = () => {
+      sidebarImgEl.src = defaultLogo;
+    };
+  }
 }
 
 // =============================================================================
@@ -1577,7 +1601,7 @@ function renderWhitelistTags() {
         renderLanguageChips(document.getElementById('search-languages')?.value || '');
         updateStats();
         notifyConfigChanged();
-      }, 150);
+      }, 140);
     });
 
     container.appendChild(tag);
@@ -1624,7 +1648,7 @@ function renderLanguageChips(filterQuery = '') {
             renderLanguageChips(filterQuery);
             updateStats();
             notifyConfigChanged();
-          }, 150);
+          }, 140);
           return;
         }
         state.config.languages = state.config.languages.filter(code => code.toLowerCase() !== l.code.toLowerCase());
@@ -1872,6 +1896,122 @@ function setupInstallPageActions() {
     reader.readAsText(file);
   });
 
+  // Create Configuration Form Handlers
+  setupDynamicPasswordInput(
+    'create-input-password',
+    'create-password-wrap',
+    'btn-toggle-create-eye',
+    'create-eye-show',
+    'create-eye-hide'
+  );
+
+  setupDynamicPasswordInput(
+    'create-input-confirm-password',
+    'create-confirm-password-wrap',
+    'btn-toggle-create-confirm-eye',
+    'create-confirm-eye-show',
+    'create-confirm-eye-hide'
+  );
+
+  // Button: Create Configuration
+  document.getElementById('btn-create-config')?.addEventListener('click', async () => {
+    const passInput = document.getElementById('create-input-password');
+    const confirmInput = document.getElementById('create-input-confirm-password');
+    const errBox = document.getElementById('create-config-error');
+    const pass = passInput ? passInput.value.trim() : '';
+    const confirmPass = confirmInput ? confirmInput.value.trim() : '';
+    const remember = document.getElementById('check-create-remember-me')?.checked;
+
+    if (errBox) errBox.style.display = 'none';
+
+    if (!pass) {
+      if (errBox) {
+        errBox.textContent = 'Informe uma senha para sua configuração.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (pass.length < 4) {
+      if (errBox) {
+        errBox.textContent = 'A senha deve ter pelo menos 4 caracteres.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (pass !== confirmPass) {
+      if (errBox) {
+        errBox.textContent = 'As senhas não coincidem.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    // Check credentials on active services
+    const missingCreds = [];
+    const nativeIds = ['opensubtitles', 'subdl', 'subsource'];
+    for (const id of nativeIds) {
+      const prov = state.config.providers[id];
+      if (prov && prov.enabled === true && (!prov.apiKey || prov.apiKey.trim() === '')) {
+        missingCreds.push(SERVICES_META[id]?.name || id);
+      }
+    }
+
+    if (missingCreds.length > 0) {
+      showMissingCredentialsBanner(missingCreds);
+      showToast('Existem serviços ativados sem credenciais.');
+      navigateToPage('services');
+      return;
+    }
+
+    const btn = document.getElementById('btn-create-config');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
+
+    const newUuid = generateUuid();
+    try {
+      const res = await fetch('/api/config/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uuid: newUuid,
+          password: pass,
+          config: state.config
+        })
+      });
+      const data = await res.json();
+      if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
+
+      if (!res.ok || !data.success) {
+        if (errBox) {
+          errBox.textContent = data.error || 'Erro ao criar configuração.';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      state.uuid = newUuid;
+      state.password = pass;
+      state.isConfigCreated = true;
+      state.lastSavedConfigJson = JSON.stringify(state.config);
+
+      if (remember) {
+        localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
+        localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
+      }
+
+      window.history.replaceState(null, '', `/${state.uuid}/configure`);
+      renderInstallPageDetails();
+      showToast('Configuração criada com sucesso!');
+    } catch {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
+      if (errBox) {
+        errBox.textContent = 'Erro ao conectar ao servidor.';
+        errBox.style.display = 'block';
+      }
+    }
+  });
+
   // Copy UUID
   document.getElementById('btn-copy-uuid')?.addEventListener('click', () => {
     if (state.uuid) {
@@ -1880,7 +2020,7 @@ function setupInstallPageActions() {
     }
   });
 
-  // Dynamic Password Input with Eye Toggle (hidden when empty)
+  // Dynamic Password Input with Eye Toggle for Save Section (hidden when empty)
   setupDynamicPasswordInput(
     'input-user-password',
     'user-password-wrap',
@@ -1889,7 +2029,7 @@ function setupInstallPageActions() {
     'pass-eye-hide',
     (val) => {
       state.password = val.trim();
-      if (state.uuid) {
+      if (state.uuid && state.isConfigCreated) {
         localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
       }
     }
@@ -1897,13 +2037,13 @@ function setupInstallPageActions() {
 
   // Explicit Save button on Save Configuration section
   document.getElementById('btn-explicit-save')?.addEventListener('click', () => {
-    saveConfigurationAndShowInstall();
+    saveCurrentConfiguration(false);
   });
 
   // Copy Direct Manifest URL
   document.getElementById('btn-copy-manifest')?.addEventListener('click', () => {
     const input = document.getElementById('final-manifest-url');
-    if (input && input.value) {
+    if (input && input.value && state.isConfigCreated && state.uuid) {
       navigator.clipboard.writeText(input.value);
       showToast('Manifest URL copiada com sucesso!');
     }
@@ -1912,16 +2052,24 @@ function setupInstallPageActions() {
   // Client Badges
   document.getElementById('pill-open-stremio')?.addEventListener('click', () => {
     const link = document.getElementById('link-install-stremio');
-    if (link && link.href) window.location.href = link.href;
+    if (link && link.href && state.isConfigCreated && state.uuid) {
+      window.location.href = link.href;
+    }
   });
 
   document.getElementById('pill-open-nuvio')?.addEventListener('click', () => {
-    openNuvioModal();
+    if (state.isConfigCreated && state.uuid) {
+      openNuvioModal();
+    } else {
+      showToast('Crie sua configuração antes de instalar no Nuvio.');
+    }
   });
 
   document.getElementById('pill-open-web')?.addEventListener('click', () => {
     const link = document.getElementById('link-install-stremio-web');
-    if (link && link.href) window.open(link.href, '_blank', 'noopener,noreferrer');
+    if (link && link.href && state.isConfigCreated && state.uuid) {
+      window.open(link.href, '_blank', 'noopener,noreferrer');
+    }
   });
 
   // Connector Timeout on Install page (Unified numeric input with custom stepper)
@@ -1949,7 +2097,7 @@ function setupInstallPageActions() {
   });
 }
 
-async function saveConfigurationAndShowInstall() {
+async function saveCurrentConfiguration(andShowInstall = false) {
   // 1. Validation check on active services
   const missingCreds = [];
   const nativeIds = ['opensubtitles', 'subdl', 'subsource'];
@@ -1971,11 +2119,10 @@ async function saveConfigurationAndShowInstall() {
 
   hideMissingCredentialsBanner();
 
-  if (!state.uuid) {
-    state.uuid = generateUuid();
-  }
-  if (!state.password) {
-    state.password = generateSecurePassword();
+  if (!state.isConfigCreated || !state.uuid || !state.password) {
+    showToast('Defina uma senha na etapa Install para criar e salvar sua configuração.');
+    navigateToPage('install');
+    return;
   }
 
   const passInput = document.getElementById('input-user-password');
@@ -2009,11 +2156,10 @@ async function saveConfigurationAndShowInstall() {
     }
     notifyConfigChanged();
 
-    // Update URL path without full refresh
-    window.history.replaceState(null, '', `/${state.uuid}/configure`);
-
-    renderInstallPageDetails();
-    navigateToPage('install');
+    if (andShowInstall) {
+      renderInstallPageDetails();
+      navigateToPage('install');
+    }
     showToast('Configuração salva com sucesso!');
   } catch (err) {
     alert('Erro de conexão ao salvar a configuração.');
@@ -2021,30 +2167,74 @@ async function saveConfigurationAndShowInstall() {
 }
 
 function renderInstallPageDetails() {
-  const uuidDisplay = document.getElementById('display-user-uuid');
-  if (uuidDisplay) uuidDisplay.textContent = state.uuid || '--------';
+  const cardCreate = document.getElementById('card-create-configuration');
+  const cardSave = document.getElementById('card-save-configuration');
 
-  const passInput = document.getElementById('input-user-password');
-  if (passInput) {
-    passInput.value = state.password || '';
-    passInput.dispatchEvent(new Event('input'));
-  }
+  if (!state.isConfigCreated || !state.uuid) {
+    if (cardCreate) cardCreate.style.display = 'block';
+    if (cardSave) cardSave.style.display = 'none';
 
-  const baseUrl = window.location.origin;
-  const manifestUrl = `${baseUrl}/${state.uuid}/manifest.json`;
+    const inputEl = document.getElementById('final-manifest-url');
+    if (inputEl) inputEl.value = 'Crie sua configuração acima para gerar os links de instalação.';
 
-  const inputEl = document.getElementById('final-manifest-url');
-  if (inputEl) inputEl.value = manifestUrl;
+    const linkStremio = document.getElementById('link-install-stremio');
+    if (linkStremio) {
+      linkStremio.removeAttribute('href');
+      linkStremio.style.opacity = '0.5';
+      linkStremio.style.pointerEvents = 'none';
+    }
 
-  const linkStremio = document.getElementById('link-install-stremio');
-  if (linkStremio) {
-    const cleanHost = manifestUrl.replace(/^https?:\/\//i, '');
-    linkStremio.href = `stremio://${cleanHost}`;
-  }
+    const linkStremioWeb = document.getElementById('link-install-stremio-web');
+    if (linkStremioWeb) {
+      linkStremioWeb.removeAttribute('href');
+      linkStremioWeb.style.opacity = '0.5';
+      linkStremioWeb.style.pointerEvents = 'none';
+    }
 
-  const linkStremioWeb = document.getElementById('link-install-stremio-web');
-  if (linkStremioWeb) {
-    linkStremioWeb.href = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`;
+    const copyManifestBtn = document.getElementById('btn-copy-manifest');
+    if (copyManifestBtn) {
+      copyManifestBtn.disabled = true;
+      copyManifestBtn.style.opacity = '0.5';
+    }
+  } else {
+    if (cardCreate) cardCreate.style.display = 'none';
+    if (cardSave) cardSave.style.display = 'block';
+
+    const uuidDisplay = document.getElementById('display-user-uuid');
+    if (uuidDisplay) uuidDisplay.textContent = state.uuid || '--------';
+
+    const passInput = document.getElementById('input-user-password');
+    if (passInput) {
+      passInput.value = state.password || '';
+      passInput.dispatchEvent(new Event('input'));
+    }
+
+    const baseUrl = window.location.origin;
+    const manifestUrl = `${baseUrl}/${state.uuid}/manifest.json`;
+
+    const inputEl = document.getElementById('final-manifest-url');
+    if (inputEl) inputEl.value = manifestUrl;
+
+    const linkStremio = document.getElementById('link-install-stremio');
+    if (linkStremio) {
+      const cleanHost = manifestUrl.replace(/^https?:\/\//i, '');
+      linkStremio.href = `stremio://${cleanHost}`;
+      linkStremio.style.opacity = '1';
+      linkStremio.style.pointerEvents = 'auto';
+    }
+
+    const linkStremioWeb = document.getElementById('link-install-stremio-web');
+    if (linkStremioWeb) {
+      linkStremioWeb.href = `https://web.stremio.com/#/addons?addon=${encodeURIComponent(manifestUrl)}`;
+      linkStremioWeb.style.opacity = '1';
+      linkStremioWeb.style.pointerEvents = 'auto';
+    }
+
+    const copyManifestBtn = document.getElementById('btn-copy-manifest');
+    if (copyManifestBtn) {
+      copyManifestBtn.disabled = false;
+      copyManifestBtn.style.opacity = '1';
+    }
   }
 
   // Connector Timeout Display (Unified numeric input)
@@ -2055,8 +2245,106 @@ function renderInstallPageDetails() {
 }
 
 // =============================================================================
-// 13. Load Configuration Modal (UUID + Password)
+// 13. Dashboard Login Modal & Load Configuration Modal
 // =============================================================================
+function openDashboardLoginModal(prefillUuid = '') {
+  const uuidInput = document.getElementById('dashboard-input-uuid');
+  const passInput = document.getElementById('dashboard-input-password');
+  const errBox = document.getElementById('dashboard-login-error');
+  if (errBox) errBox.style.display = 'none';
+
+  if (uuidInput) {
+    uuidInput.value = prefillUuid || localStorage.getItem('aiosubtitles_current_uuid') || '';
+  }
+  if (passInput) {
+    passInput.value = '';
+    passInput.dispatchEvent(new Event('input'));
+  }
+  openModal('modal-dashboard-login');
+}
+
+function closeDashboardLoginModal() {
+  closeModal('modal-dashboard-login');
+}
+
+function setupDashboardLoginModal() {
+  setupDynamicPasswordInput(
+    'dashboard-input-password',
+    'dashboard-password-wrap',
+    'btn-toggle-dashboard-eye',
+    'dashboard-eye-show',
+    'dashboard-eye-hide'
+  );
+
+  document.getElementById('btn-close-dashboard-modal')?.addEventListener('click', closeDashboardLoginModal);
+
+  document.getElementById('btn-submit-dashboard-login')?.addEventListener('click', async () => {
+    const uuidInput = document.getElementById('dashboard-input-uuid');
+    const passInput = document.getElementById('dashboard-input-password');
+    const errBox = document.getElementById('dashboard-login-error');
+    const uuid = uuidInput ? uuidInput.value.trim().toLowerCase() : '';
+    const pass = passInput ? passInput.value.trim() : '';
+
+    if (!uuid || !pass) {
+      if (errBox) {
+        errBox.textContent = 'Preencha o UUID e a senha.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (!isUuid(uuid)) {
+      if (errBox) {
+        errBox.textContent = 'Formato de UUID inválido.';
+        errBox.style.display = 'block';
+      }
+      return;
+    }
+
+    const btn = document.getElementById('btn-submit-dashboard-login');
+    if (btn) { btn.disabled = true; btn.textContent = 'Entrando...'; }
+
+    try {
+      const res = await fetch('/api/config/load', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uuid, password: pass })
+      });
+      const data = await res.json();
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+
+      if (!res.ok || !data.success) {
+        if (errBox) {
+          errBox.textContent = data.error || 'UUID ou senha inválidos.';
+          errBox.style.display = 'block';
+        }
+        return;
+      }
+
+      state.uuid = data.uuid;
+      state.password = pass;
+      state.isConfigCreated = true;
+      localStorage.setItem('aiosubtitles_current_uuid', state.uuid);
+      localStorage.setItem(`aiosubtitles_pass_${state.uuid}`, state.password);
+
+      applyConfigWithMigration(data.config);
+      state.lastSavedConfigJson = JSON.stringify(state.config);
+
+      closeDashboardLoginModal();
+      showWizardView();
+      window.history.pushState(null, '', `/${state.uuid}/configure`);
+      navigateToPage('home');
+      renderAll();
+      showToast('Configuração carregada com sucesso!');
+    } catch {
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+      if (errBox) {
+        errBox.textContent = 'Erro ao conectar ao servidor.';
+        errBox.style.display = 'block';
+      }
+    }
+  });
+}
 function openLoadConfigModal() {
   const modal = document.getElementById('modal-load-config');
   const errBox = document.getElementById('load-config-error');

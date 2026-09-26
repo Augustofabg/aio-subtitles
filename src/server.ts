@@ -45,9 +45,9 @@ export function createServer(): express.Application {
 
   // Helper to construct Stremio manifest dynamically from user config
   const buildManifest = (configEncoded?: string): StremioManifest => {
-    let name = 'AIO Subtitles';
+    let name = 'AIOSubs';
     let description = 'Agregador e organizador de legendas dedicado para Stremio e Nuvio.';
-    let logo = 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png';
+    let logo = '/assets/AIOsubs_logo_wordmark.png';
     let version = '1.0.0';
 
     if (configEncoded) {
@@ -390,12 +390,16 @@ export function createServer(): express.Application {
     });
   });
 
-  // Configuration Page: root redirect or /configure
+  // Configuration & Landing Page Endpoints
   app.get('/', (_req: Request, res: Response) => {
-    res.redirect('/configure');
+    res.sendFile(path.join(publicDir, 'index.html'));
   });
 
   app.get('/configure', (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+
+  app.get('/dashboard', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 

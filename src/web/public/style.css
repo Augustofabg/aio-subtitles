@@ -129,6 +129,17 @@ html, body {
   align-items: center;
   justify-content: center;
   color: #a78bfa;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.brand-avatar img {
+  width: 22px;
+  height: 22px;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .sidebar-nav {
@@ -402,46 +413,6 @@ html, body {
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.btn-circle-nav {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  border-radius: 50% !important;
-  background: #141418;
-  border: 1px solid #22222a;
-  color: var(--text-secondary);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform 100ms ease, box-shadow var(--transition-fast);
-}
-
-.btn-circle-nav:hover:not(:disabled) {
-  background: #1c1c24;
-  color: #fff;
-  border-color: #2e2e38;
-  transform: translateY(-1px);
-}
-
-.btn-circle-nav:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.btn-wizard-save {
-  background: #141418;
-  border: 1px solid #22222a;
-  color: var(--text-secondary);
-}
-
-.btn-wizard-save.has-unsaved {
-  background-color: #7c5cff !important;
-  color: #ffffff !important;
-  border-color: #7c5cff !important;
-  box-shadow: 0 0 10px rgba(124, 92, 255, 0.4);
 }
 
 .btn-wizard-save.has-unsaved:hover {
@@ -846,12 +817,19 @@ html, body {
   background-color: #18181c;
   border: 1px solid var(--border-subtle);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar-uploader img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  padding: 6px;
+  display: block;
 }
 
 .avatar-edit-overlay {
@@ -2516,9 +2494,9 @@ html, body {
   max-width: 480px;
   overflow: hidden;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
-  transform: scale(0.96);
+  transform: scale(0.97);
   opacity: 0;
-  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease-out;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease-out;
 }
 
 .modal-backdrop.active .modal-card {
@@ -2530,13 +2508,13 @@ html, body {
   opacity: 0 !important;
   visibility: visible !important;
   pointer-events: none !important;
-  transition: opacity 150ms ease-in, visibility 150ms ease-in !important;
+  transition: opacity 120ms ease-in, visibility 120ms ease-in !important;
 }
 
 .modal-backdrop.closing .modal-card {
-  transform: scale(0.96) !important;
+  transform: scale(0.97) !important;
   opacity: 0 !important;
-  transition: transform 150ms ease-in, opacity 150ms ease-in !important;
+  transition: transform 120ms ease-in, opacity 120ms ease-in !important;
 }
 
 .modal-compact {
@@ -2760,12 +2738,101 @@ html, body {
 }
 
 /* ==========================================================================
-   Microinteractions & Performance-Optimized Animations
+   Landing Page (AIOStreams style centered landing)
    ========================================================================== */
-@keyframes pageFadeIn {
+.landing-view {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-main);
+  padding: 24px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  animation: pageSlideUpIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 520px;
+  width: 100%;
+}
+
+.landing-logo-wrap {
+  margin-bottom: 24px;
+}
+
+.landing-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  object-fit: contain;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: #18181c;
+  padding: 8px;
+  display: block;
+}
+
+.landing-title {
+  font-size: 30px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  margin-bottom: 12px;
+}
+
+.landing-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 32px;
+  max-width: 440px;
+}
+
+.landing-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.btn-landing-pill {
+  height: 40px;
+  padding: 0 28px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 130px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-landing-pill:hover {
+  transform: translateY(-1px);
+}
+
+.btn-landing-pill:active {
+  transform: scale(0.97);
+}
+
+/* ==========================================================================
+   Microinteractions & Performance-Optimized Animations (AIOStreams Standard)
+   ========================================================================== */
+@keyframes pageSlideUpIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -2773,113 +2840,55 @@ html, body {
   }
 }
 
-@keyframes pageInForward {
-  from {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes pageInBackward {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
 .page-view.active {
-  animation: pageFadeIn var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: pageSlideUpIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.page-view.anim-forward {
-  animation: pageInForward var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.landing-container {
+  animation: pageSlideUpIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.page-view.anim-backward {
-  animation: pageInBackward var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes pageFadeOutLeft {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-}
-
-@keyframes pageFadeOutRight {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(8px);
-  }
-}
-
-.page-view.page-fade-out-left {
-  animation: pageFadeOutLeft 110ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-  pointer-events: none;
-}
-
-.page-view.page-fade-out-right {
-  animation: pageFadeOutRight 110ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-  pointer-events: none;
-}
-
-/* Lateral Filters Sub-Nav Transition */
+/* Lateral Filters Sub-Nav Transition (translateY(12px) / translateY(0), 220ms) */
 .filters-nav-item {
   transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
-@keyframes paneFadeOut {
+@keyframes filterPaneExit {
   from {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateX(-4px);
+    transform: translateY(6px);
   }
 }
 
 .filters-tab-pane.pane-fade-out {
-  animation: paneFadeOut 100ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  animation: filterPaneExit 120ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   pointer-events: none;
 }
 
-@keyframes lateralTabIn {
+@keyframes filterPaneEnter {
   from {
     opacity: 0;
-    transform: translateX(4px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
 .filters-tab-pane.active {
-  animation: lateralTabIn var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: filterPaneEnter 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Whitelist Selected Tags Animation */
+/* Whitelist Selected Tags Animation (Entry: translateX(-6px) -> 0; Exit: 0 -> translateX(6px)) */
 @keyframes tagEnter {
   from {
     opacity: 0;
-    transform: translateX(-4px);
+    transform: translateX(-6px);
   }
   to {
     opacity: 1;
@@ -2887,14 +2896,24 @@ html, body {
   }
 }
 
+@keyframes tagExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(6px);
+  }
+}
+
 .selected-lang-tag {
-  animation: tagEnter var(--transition-normal) cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  animation: tagEnter 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 140ms cubic-bezier(0.16, 1, 0.3, 1), transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .selected-lang-tag.removing {
-  opacity: 0 !important;
-  transform: translateX(4px) !important;
+  animation: tagExit 140ms cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
   pointer-events: none;
 }
 

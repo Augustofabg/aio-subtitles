@@ -2,9 +2,9 @@ import { UserConfig, PartialUserConfig } from '../types/config';
 import { isUuid, configStorage } from '../storage/configStore';
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
-  instanceName: 'AIOSubtitles',
+  instanceName: 'AIOSubs',
   instanceDesc: 'Agregador e organizador de legendas',
-  instanceLogo: 'https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png',
+  instanceLogo: '/assets/AIOsubs_logo_wordmark.png',
   instanceVersion: 'v1.0.0',
   providers: {
     'opensubtitles': { enabled: false, apiKey: '' },

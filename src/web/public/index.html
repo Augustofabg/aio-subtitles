@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AIO Subtitles — Stremio & Nuvio Subtitles Aggregator</title>
+  <title>AIOSubs — Stremio & Nuvio Subtitles Aggregator</title>
   <meta name="description" content="Agregador e organizador universal de legendas para Stremio e Nuvio. Provedores nativos, importação livre de addons, normalização e remapeamento de idiomas.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,16 +14,31 @@
 </head>
 <body class="dark-theme">
 
-  <!-- Application Layout -->
-  <div class="aiostreams-layout">
+  <!-- ===================================================================
+       LANDING PAGE (AIOStreams style centered landing view)
+       =================================================================== -->
+  <div id="view-landing" class="landing-view">
+    <div class="landing-container">
+      <div class="landing-logo-wrap">
+        <img src="/assets/AIOsubs_logo_wordmark.png" alt="AIOSubs Logo" id="landing-logo-img" class="landing-logo" onerror="this.src='/assets/AIOsubs_logo_wordmark.png'">
+      </div>
+      <h1 class="landing-title" id="landing-title">AIOSubs</h1>
+      <p class="landing-desc" id="landing-desc">O addon completo de legendas para o Stremio. Configure seu addon ou gerencie esta instância pelo dashboard.</p>
+      <div class="landing-actions">
+        <button class="btn btn-primary btn-landing-pill" id="btn-landing-configure">Configure</button>
+        <button class="btn btn-secondary btn-landing-pill" id="btn-landing-dashboard">Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Layout (Wizard - shown during configuration) -->
+  <div class="aiostreams-layout" id="app-layout" style="display: none;">
     
     <!-- Fixed Left Sidebar (AIOStreams style) -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
-        <div class="brand-avatar" id="sidebar-logo-preview" title="AIO Subtitles">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4M4,12H8V14H4V12M14,18H4V16H14V18M20,18H16V16H20V18M20,14H10V12H20V14Z"/>
-          </svg>
+        <div class="brand-avatar" id="sidebar-logo-preview" title="AIOSubs">
+          <img id="sidebar-brand-img" src="/assets/AIOsubs_logo_wordmark.png" alt="AIOSubs" width="22" height="22" style="width: 22px; height: 22px; object-fit: contain; display: block;" onerror="this.src='/assets/AIOsubs_logo_wordmark.png'">
         </div>
       </div>
 
@@ -65,6 +80,12 @@
       </nav>
 
       <div class="sidebar-footer">
+        <button class="nav-item" id="btn-home-signout" title="Sign Out" style="background: transparent; border: none; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
+          </svg>
+          <span class="nav-label" style="display: none;">Sign Out</span>
+        </button>
         <a href="https://github.com/Augustofabg/aio-subtitles" target="_blank" class="nav-item" title="Repositório GitHub">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/>
@@ -76,42 +97,20 @@
     <!-- Main Content Wrapper with Topbar -->
     <div class="main-wrapper">
       
-      <!-- Topbar (AIOStreams pattern: [Load Config] ... [Previous] [Next] [Save & Install]) -->
+      <!-- Topbar (Clean navigation: [Previous] [Next]) -->
       <header class="topbar">
         <div class="topbar-left">
-          <!-- Unsaved changes notification bar & draft management -->
-          <div class="unsaved-changes-banner" id="unsaved-changes-banner" style="display: none;">
-            <span class="unsaved-badge">
-              <span class="unsaved-dot"></span>
-              Unsaved changes
-            </span>
-            <button class="btn-topbar-link" id="btn-restore-draft" title="Restaurar rascunho anterior">Restore</button>
-            <button class="btn-topbar-link" id="btn-discard-draft" title="Descartar alterações não salvas">Discard</button>
-            <label class="toggle-drafts-wrap" title="Não manter rascunhos neste navegador">
-              <input type="checkbox" id="toggle-no-drafts">
-              <span class="toggle-drafts-label">Don't keep drafts on this browser</span>
-            </label>
-          </div>
+          <!-- Clean left topbar -->
         </div>
 
         <div class="topbar-right">
-          <!-- Wizard Navigation Group: [← Previous] [↺] [💾] [Next →] -->
+          <!-- Wizard Navigation Group: [← Previous] [Next →] -->
           <div class="wizard-nav-group">
             <button class="btn btn-pill-nav" id="btn-prev" title="Página anterior" aria-label="Previous">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"/>
               </svg>
               <span>Previous</span>
-            </button>
-            <button class="btn btn-circle-nav" id="btn-reset-draft" title="Restaurar / Desfazer alterações" aria-label="Reset changes">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z"/>
-              </svg>
-            </button>
-            <button class="btn btn-circle-nav btn-wizard-save" id="btn-topbar-save" title="Salvar e Continuar" aria-label="Save">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-              </svg>
             </button>
             <button class="btn btn-pill-nav" id="btn-next" title="Próxima página" aria-label="Next">
               <span>Next</span>
@@ -127,41 +126,19 @@
       <main class="content-container">
         
         <!-- ===================================================================
-             PAGE 1: HOME (Instance Branding)
+             PAGE 1: HOME (Instance Branding) - Clean Header
              =================================================================== -->
         <section class="page-view active" id="page-home">
-          <div class="view-header view-header-with-actions">
-            <div>
-              <h1 class="view-title">Instance Branding</h1>
-              <p class="view-subtitle">Personalize a identidade da sua instância de legendas</p>
-            </div>
-            <div class="view-header-actions">
-              <button class="btn btn-pill-nav btn-pill-header" id="btn-home-header-save" title="Salvar configuração">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M15,9H5V5H15M12,19A3,3 0 0,1 9,16A3,3 0 0,1 12,13A3,3 0 0,1 15,16A3,3 0 0,1 12,19M17,3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V7L17,3Z"/>
-                </svg>
-                <span>Save</span>
-              </button>
-              <a href="https://github.com/Augustofabg/aio-subtitles" target="_blank" rel="noopener noreferrer" class="btn btn-pill-nav btn-pill-header" id="btn-home-donate" title="Donate">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"/>
-                </svg>
-                <span>Donate</span>
-              </a>
-              <button class="btn btn-pill-nav btn-pill-header" id="btn-home-signout" title="Sign Out">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z"/>
-                </svg>
-                <span>Sign Out</span>
-              </button>
-            </div>
+          <div class="view-header">
+            <h1 class="view-title">Instance Branding</h1>
+            <p class="view-subtitle">Personalize a identidade da sua instância de legendas</p>
           </div>
 
           <!-- Instance Branding Card -->
           <div class="card card-hero">
             <div class="hero-branding">
               <div class="avatar-uploader">
-                <img id="home-logo-img" src="https://raw.githubusercontent.com/stremio/stremio-addon-sdk/master/images/stremio.png" alt="Addon Logo">
+                <img id="home-logo-img" src="/assets/AIOsubs_logo_wordmark.png" alt="AIOSubs Logo" onerror="this.src='/assets/AIOsubs_logo_wordmark.png'">
                 <button class="avatar-edit-overlay" id="btn-change-logo" title="Alterar logo">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M20,4H16.83L15,2H9L7.17,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4M20,18H4V6H8.05L9.88,4H14.12L15.95,6H20V18M12,7A5,5 0 0,0 7,12A5,5 0 0,0 12,17A5,5 0 0,0 17,12A5,5 0 0,0 12,7M12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15Z"/>
@@ -171,7 +148,7 @@
 
               <div class="hero-details">
                 <div class="hero-title-row">
-                  <span class="hero-name-editable" id="home-instance-name">AIOSubtitles</span>
+                  <span class="hero-name-editable" id="home-instance-name">AIOSubs</span>
                   <button class="icon-inline-edit" id="btn-edit-instance-name" title="Editar nome">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M14.06,9L15,9.94L5.92,19H5V18.08L14.06,9M17.66,3C17.41,3 17.15,3.1 16.96,3.29L15.13,5.12L18.88,8.87L20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18.17,3.09 17.92,3 17.66,3M14.06,6.19L3,17.25V21H6.75L17.81,9.94L14.06,6.19Z"/>
@@ -290,7 +267,7 @@
               <div class="service-row" data-service-id="opensubtitles">
                 <div class="service-left">
                   <div class="service-logo" title="OpenSubtitles">
-                    <img src="opensubtitles.png" alt="OpenSubtitles" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain;">
+                    <img src="/assets/opensubtitlepro_logo_wordmark.png" alt="OpenSubtitles" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain;">
                   </div>
                   <div class="service-info">
                     <div class="service-name-row">
@@ -344,7 +321,7 @@
               <div class="service-row" data-service-id="subsource">
                 <div class="service-left">
                   <div class="service-logo" title="Subsource">
-                    <img src="https://imgs.search.brave.com/bzJeQcqBSCgkMmE78wz0P-OnmStkhz5Vn3h-QawAqso/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMTRiZjY5YmZm/OTRlZDNlNTJkNGFl/YjdiMzgxNmJhZDA5/YTAzMGZlMWY3OTcx/ODEzOWFhMTJlODEy/OGViOTZlNi9zdWJz/b3VyY2UubmV0Lw" alt="Subsource" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain;">
+                    <img src="/assets/subSource_logo_wordmark.png" alt="Subsource" width="36" height="36" style="width: 36px; height: 36px; border-radius: 8px; object-fit: contain;">
                   </div>
                   <div class="service-info">
                     <div class="service-name-row">
@@ -737,12 +714,70 @@
             </div>
           </div>
 
-          <!-- SECTION 2: SAVE CONFIGURATION (Strictly Left-Aligned) -->
+          <!-- SECTION 2: CREATE / SAVE CONFIGURATION (Strictly Left-Aligned) -->
           <div class="install-section-group">
-            <div class="section-badge-header">SAVE CONFIGURATION</div>
-            <p class="section-desc-subtle">Save your configuration to your account by clicking Save below.</p>
+            
+            <!-- Estado A: Nenhuma configuração criada ainda (padrão ao entrar via "Configure") -->
+            <div id="card-create-configuration" class="card card-uuid-box">
+              <div class="section-badge-header" style="margin-bottom: 4px;">CREATE CONFIGURATION</div>
+              <p class="section-desc-subtle" style="margin-bottom: 16px;">Set up your personalised addon configuration</p>
 
-            <div class="card card-uuid-box">
+              <div id="create-config-error" class="validation-feedback error" style="display: none; margin-bottom: 12px; width: 100%;"></div>
+
+              <!-- Password input -->
+              <div class="password-config-row">
+                <label for="create-input-password" class="password-label">Password <span class="required-star" style="color: #ef4444;">*</span></label>
+                <div class="password-input-wrap" id="create-password-wrap">
+                  <input type="password" id="create-input-password" class="form-input" placeholder="Defina sua senha" required>
+                  <button class="btn-toggle-eye" id="btn-toggle-create-eye" title="Mostrar/Ocultar Senha" type="button" aria-label="Mostrar ou ocultar senha" style="display: none;">
+                    <svg id="create-eye-show" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                    </svg>
+                    <svg id="create-eye-hide" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                      <path d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Confirm Password input -->
+              <div class="password-config-row">
+                <label for="create-input-confirm-password" class="password-label">Confirm Password <span class="required-star" style="color: #ef4444;">*</span></label>
+                <div class="password-input-wrap" id="create-confirm-password-wrap">
+                  <input type="password" id="create-input-confirm-password" class="form-input" placeholder="Confirme sua senha" required>
+                  <button class="btn-toggle-eye" id="btn-toggle-create-confirm-eye" title="Mostrar/Ocultar Senha" type="button" aria-label="Mostrar ou ocultar senha" style="display: none;">
+                    <svg id="create-confirm-eye-show" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+                    </svg>
+                    <svg id="create-confirm-eye-hide" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                      <path d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Help text -->
+              <div class="uuid-subtext" style="margin-bottom: 16px;">
+                This is the password you will use to access and update your configuration later. You can change your password later using the Change Password option, but please remember your current password as it is required to make changes.
+              </div>
+
+              <!-- Actions row: [ Create ] button and [x] Remember me checkbox -->
+              <div class="create-config-actions-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                <button class="btn btn-primary btn-save-pill" id="btn-create-config" type="button">
+                  Create
+                </button>
+                <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                  <input type="checkbox" id="check-create-remember-me" checked style="accent-color: #7c5cff; width: 15px; height: 15px;">
+                  <span style="font-size: 12px; color: var(--text-secondary);">Remember me</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Estado B: Configuração já criada / carregada -->
+            <div id="card-save-configuration" class="card card-uuid-box" style="display: none;">
+              <div class="section-badge-header" style="margin-bottom: 4px;">SAVE CONFIGURATION</div>
+              <p class="section-desc-subtle" style="margin-bottom: 16px;">Save your configuration to your account by clicking Save below.</p>
+
               <div class="uuid-left-container">
                 <div class="uuid-horizontal-block">
                   <div class="uuid-info-icon" title="Informações do UUID">
@@ -840,10 +875,8 @@
                       <span>Stremio</span>
                     </div>
                     <div class="client-pill" title="Nuvio" id="pill-open-nuvio">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="#38bdf8">
-                        <path d="M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21A2,2 0 0,0 7,23H17A2,2 0 0,0 19,21V3C19,1.89 18.1,1 17,1Z"/>
-                      </svg>
-                      <span>Nuvio (QR)</span>
+                      <img src="/assets/nuvio_logo_wordmark.png" alt="Nuvio" width="16" height="16" style="width: 16px; height: 16px; object-fit: contain;">
+                      <span>Nuvio</span>
                     </div>
                     <div class="client-pill" title="Web Client" id="pill-open-web">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="#7c5cff">
@@ -980,7 +1013,7 @@
       <div class="modal-body">
         <div class="input-group">
           <label for="modal-input-name">Nome do Addon:</label>
-          <input type="text" id="modal-input-name" class="form-input" placeholder="ex: AIOSubtitles">
+          <input type="text" id="modal-input-name" class="form-input" placeholder="ex: AIOSubs">
         </div>
         <div class="input-group">
           <label for="modal-input-desc">Descrição curta:</label>
@@ -1061,6 +1094,72 @@
       <div class="modal-footer modal-footer-between">
         <button class="btn btn-outline" id="btn-cancel-edit-addon">Cancel</button>
         <button class="btn btn-primary" id="btn-save-edit-addon">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Login Modal (AIOStreams pattern: UUID + Password) -->
+  <div class="modal-backdrop" id="modal-dashboard-login">
+    <div class="modal-card modal-compact" style="max-width: 420px;">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-dashboard-title">Sign In</h3>
+          <p class="modal-subtitle">Entre com o UUID e a senha de uma configuração existente para gerenciá-la.</p>
+        </div>
+        <button class="modal-close" id="btn-close-dashboard-modal" title="Fechar" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="dashboard-login-error" class="validation-feedback error" style="display: none; margin-bottom: 12px;"></div>
+        <div class="input-group">
+          <label for="dashboard-input-uuid">UUID <span class="required-star" style="color: #ef4444;">*</span></label>
+          <input type="text" id="dashboard-input-uuid" class="form-input form-input-code" placeholder="ex: 51c97db4-03b7-4ec2-875d-e3a755c564b9" required>
+        </div>
+        <div class="input-group">
+          <label for="dashboard-input-password">Password <span class="required-star" style="color: #ef4444;">*</span></label>
+          <div class="password-input-wrap" id="dashboard-password-wrap">
+            <input type="password" id="dashboard-input-password" class="form-input" placeholder="Sua senha" required>
+            <button class="btn-toggle-eye" id="btn-toggle-dashboard-eye" type="button" title="Mostrar/Ocultar Senha" style="display: none;">
+              <svg id="dashboard-eye-show" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17M12,4.5C7,4.5 2.73,7.61 1,12C2.73,16.39 7,19.5 12,19.5C17,19.5 21.27,16.39 23,12C21.27,7.61 17,4.5 12,4.5Z"/>
+              </svg>
+              <svg id="dashboard-eye-hide" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="display: none;">
+                <path d="M11.83,9L15,12.16C15,12.11 15,12.05 15,12A3,3 0 0,0 12,9C11.94,9 11.89,9 11.83,9M7.53,9.8L9.08,11.35C9.03,11.56 9,11.77 9,12A3,3 0 0,0 12,15C12.22,15 12.44,14.97 12.65,14.92L14.2,16.47C13.53,16.8 12.79,17 12,17A5,5 0 0,1 7,12C7,11.21 7.2,10.47 7.53,9.8M2,4.27L4.28,6.55L4.73,7C3.08,8.3 1.78,10 1,12C2.73,16.39 7,19.5 12,19.5C13.55,19.5 15.03,19.2 16.38,18.66L16.81,19.08L19.73,22L21,20.73L3.27,3M12,7A5,5 0 0,1 17,12C17,12.64 16.87,13.26 16.64,13.82L19.57,16.75C21.07,15.5 22.27,13.86 23,12C21.27,7.61 17,4.5 12,4.5C10.6,4.5 9.26,4.75 8,5.2L10.17,7.35C10.74,7.13 11.35,7 12,7Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding-top: 8px;">
+        <button class="btn btn-primary" id="btn-submit-dashboard-login" style="width: 100%; border-radius: 9999px; height: 36px; font-weight: 600;">Sign In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign Out Confirmation Modal (AIOStreams pattern) -->
+  <div class="modal-backdrop" id="modal-signout-confirm">
+    <div class="modal-card modal-compact" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Sign Out</h3>
+        <button class="modal-close" id="btn-close-signout-modal" title="Fechar" type="button">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13.5px; color: var(--text-main); margin-bottom: 16px;">Are you sure you want to sign out?</p>
+        <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+          <input type="checkbox" id="check-signout-all-devices" checked style="accent-color: #7c5cff; width: 15px; height: 15px;">
+          <span style="font-size: 12.5px; color: var(--text-secondary);">Sign out on all devices</span>
+        </label>
+      </div>
+      <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 12px;">
+        <button class="btn btn-primary btn-pill-nav" id="btn-confirm-signout" style="min-width: 88px; height: 32px; border-radius: 9999px;">Confirm</button>
+        <button class="btn btn-secondary btn-pill-nav" id="btn-cancel-signout" style="min-width: 88px; height: 32px; border-radius: 9999px;">Cancel</button>
       </div>
     </div>
   </div>
