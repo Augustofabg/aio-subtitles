@@ -13,17 +13,17 @@
 [![Render Deploy](https://img.shields.io/badge/deploy-Render-46E3B7.svg)](https://render.com/)
 
 <p align="center">
-    <a href="https://github.com/Augustofabg/aio-subtitles/actions/workflows/SEU_WORKFLOW.yml">
-        <img src="https://img.shields.io/github/actions/workflow/status/Augustofabg/aio-subtitles/SEU_WORKFLOW.yml?style=for-the-badge&logo=github" alt="Build Status">
+    <a href="https://github.com/Augustofabg/AIOsubs/actions/workflows/docker-build.yml">
+        <img src="https://img.shields.io/github/actions/workflow/status/Augustofabg/AIOsubs/docker-build.yml?style=for-the-badge&logo=github" alt="Build Status">
     </a>
-   <a href="https://github.com/Augustofabg/aio-subtitles/releases/latest">
-        <img src="https://img.shields.io/github/v/release/Augustofabg/aio-subtitles?style=for-the-badge&logo=github" alt="Latest Release">
+   <a href="https://github.com/Augustofabg/AIOsubs/releases/latest">
+        <img src="https://img.shields.io/github/v/release/Augustofabg/AIOsubs?style=for-the-badge&logo=github" alt="Latest Release">
     </a>
-    <a href="https://github.com/Augustofabg/aio-subtitles/stargazers">
-        <img src="https://img.shields.io/github/stars/Augustofabg/aio-subtitles?style=for-the-badge&logo=github" alt="GitHub Stars">
+    <a href="https://github.com/Augustofabg/AIOsubs/stargazers">
+        <img src="https://img.shields.io/github/stars/Augustofabg/AIOsubs?style=for-the-badge&logo=github" alt="GitHub Stars">
     </a>
-    <a href="https://github.com/Augustofabg/aio-subtitles/network/members">
-        <img src="https://img.shields.io/github/forks/Augustofabg/aio-subtitles?style=for-the-badge&logo=github" alt="GitHub Forks">
+    <a href="https://github.com/Augustofabg/AIOsubs/network/members">
+        <img src="https://img.shields.io/github/forks/Augustofabg/AIOsubs?style=for-the-badge&logo=github" alt="GitHub Forks">
     </a>
 </p>
 
@@ -90,8 +90,8 @@ Pré-requisitos: **Node.js 20+** e **Git**.
 
 ```bash
 # Clone o repositório
-git clone https://github.com/Augustofabg/aio-subtitles.git
-cd aio-subtitles
+git clone https://github.com/Augustofabg/AIOsubs.git
+cd AIOsubs
 
 # Instale as dependências
 npm install
@@ -122,13 +122,13 @@ Endereços disponíveis após iniciar:
 O repositório inclui um `Dockerfile` multi-stage baseado em Alpine, rodando com usuário não-privilegiado.
 
 ```bash
-docker build -t aio-subtitles .
+docker build -t aiosubs .
 
 docker run -d \
   -p 7000:7000 \
-  --name aio-subtitles \
+  --name aiosubs \
   --restart unless-stopped \
-  aio-subtitles
+  aiosubs
 ```
 
 ### Com Docker Compose
@@ -159,12 +159,12 @@ docker compose logs -f
 
 **2. Crie o serviço web no Render**
 1. Crie uma conta em [render.com](https://render.com/).
-2. No dashboard, clique em **New + → Web Service** e conecte o repositório `aio-subtitles` (branch `main`).
+2. No dashboard, clique em **New + → Web Service** e conecte o repositório `AIOsubs` (branch `main`).
 3. Preencha:
 
    | Campo | Valor |
    | :--- | :--- |
-   | Name | `aio-subtitles` (ou o nome que preferir) |
+   | Name | `AIOsubs` (ou o nome que preferir) |
    | Region | A mais próxima de você |
    | Branch | `main` |
    | Runtime | `Node` |
