@@ -13,8 +13,6 @@
 [![Render Deploy](https://img.shields.io/badge/deploy-Render-46E3B7.svg)](https://render.com/)
 
 <p align="center">
-    <a href="https://github.com/Augustofabg/aio-subtitles/actions/workflows/docker-build.yml">
-        <img src="https://img.shields.io/github/actions/workflow/status/Augustofabg/aio-subtitles/docker-build.yml?style=for-the-badge&logo=github" alt="Build Status">
     <a href="https://github.com/Augustofabg/AIOsubs/actions/workflows/docker-build.yml">
         <img src="https://img.shields.io/github/actions/workflow/status/Augustofabg/AIOsubs/docker-build.yml?style=for-the-badge&logo=github" alt="Build Status">
     </a>
@@ -94,9 +92,6 @@ Prerequisites: **Node.js 20+** and **Git**.
 
 ```bash
 # Clone the repository
-git clone https://github.com/Augustofabg/aio-subtitles.git
-cd aio-subtitles
-# Clone o repositório
 git clone https://github.com/Augustofabg/AIOsubs.git
 cd AIOsubs
 
@@ -166,19 +161,13 @@ docker compose logs -f
 
 **2. Create the web service on Render**
 1. Create an account at [render.com](https://render.com/).
-2. From the dashboard, click **New + → Web Service** and connect the `aio-subtitles` repository (branch `main`).
+2. From the dashboard, click **New + → Web Service** and connect the `AIOsubs` repository (branch `main`).
 3. Fill in:
-**2. Crie o serviço web no Render**
-1. Crie uma conta em [render.com](https://render.com/).
-2. No dashboard, clique em **New + → Web Service** e conecte o repositório `AIOsubs` (branch `main`).
-3. Preencha:
 
    | Field | Value |
    | :--- | :--- |
-   | Name | `aio-subtitles` (or a name of your choice) |
+   | Name | `AIOsubs` (or a name of your choice) |
    | Region | The one closest to you |
-   | Name | `AIOsubs` (ou o nome que preferir) |
-   | Region | A mais próxima de você |
    | Branch | `main` |
    | Runtime | `Node` |
    | Build Command | `npm run render-build` |
@@ -235,6 +224,8 @@ npm run test:alignment      # Alignment/sync with fallback
 npm run test:supabase       # Cloud persistence and bcrypt security
 npm run test:validation     # Interface flow and OpenSubtitles headers
 ```
+
+---
 
 ## ⚠️ Disclaimer
 
