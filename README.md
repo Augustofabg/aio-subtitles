@@ -232,11 +232,3 @@ AIOSubs is a tool for aggregating and managing data from other Stremio subtitle 
 ## 🙏 Credits
 
 This project wouldn't be possible without the foundational work of many others in the community, especially those who develop the addons that AIOSubs integrates. Special thanks to **[AIOStreams](https://github.com/Viren070/AIOStreams)**, the project that served as a direct inspiration for AIOSubs' interface and aggregation philosophy, to the developers of all integrated addons, and to the open-source projects that inspired parts of AIOSubs' design.
-
----
-
-<div align="center">
-
-Distributed under the [MIT](LICENSE) license — made for the Stremio & Nuvio community.
-
-</div>
