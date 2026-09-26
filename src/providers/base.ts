@@ -9,18 +9,12 @@ export abstract class BaseSubtitleProvider implements SubtitleProvider {
   abstract readonly requiresApiKey: boolean;
   abstract readonly defaultEnabled: boolean;
 
-  /**
-   * Concrete provider implementation of search logic
-   */
   protected abstract executeSearch(
     query: SubtitleQuery,
     context: ProviderContext,
     signal: AbortSignal
   ): Promise<RawSubtitleItem[]>;
 
-  /**
-   * Wraps executeSearch with timeout, error handling, and structured metrics logging
-   */
   async search(query: SubtitleQuery, context: ProviderContext): Promise<RawSubtitleItem[]> {
     const startTime = Date.now();
     const abortController = new AbortController();
@@ -57,14 +51,10 @@ export abstract class BaseSubtitleProvider implements SubtitleProvider {
       };
       Logger.logProviderResult(logEntry);
 
-      // Return empty array instead of throwing, ensuring other providers remain unaffected
       return [];
     }
   }
 
-  /**
-   * Helper HTTP GET with abort signal and user-agent
-   */
   protected async httpGet<T = unknown>(
     url: string,
     options: AxiosRequestConfig = {},

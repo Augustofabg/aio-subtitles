@@ -6,33 +6,20 @@ import { SubsourceProvider } from './subsource';
 import { GenericStremioAddonProvider } from './genericStremioAddon';
 import { Logger } from '../utils/logger';
 
-// Instantiate built-in providers (OpenSubtitles, SubDL, Subsource)
 const BUILTIN_PROVIDERS: SubtitleProvider[] = [
   new OpenSubtitlesProvider(),
   new SubDLProvider(),
   new SubsourceProvider()
 ];
 
-const PROVIDER_MAP = new Map<string, SubtitleProvider>();
-for (const p of BUILTIN_PROVIDERS) {
-  PROVIDER_MAP.set(p.id, p);
-}
-
-/**
- * Returns list of all registered built-in providers and their metadata
- */
 export function getAllProviders(): SubtitleProvider[] {
   return [...BUILTIN_PROVIDERS];
 }
 
-/**
- * Executes subtitle search across all enabled built-in and custom imported providers in parallel using Promise.allSettled
- */
 export async function executeParallelSearch(
   query: SubtitleQuery,
   config: UserConfig
 ): Promise<RawSubtitleItem[]> {
-  // 1. Collect enabled built-in providers (must be enabled and have apiKey configured if required)
   const activeProviders: SubtitleProvider[] = BUILTIN_PROVIDERS.filter(provider => {
     const provConfig = config.providers[provider.id];
     if (!provConfig || provConfig.enabled === false) {
@@ -44,7 +31,6 @@ export async function executeParallelSearch(
     return true;
   });
 
-  // 2. Instantiate and add enabled custom imported addons
   if (Array.isArray(config.customAddons)) {
     for (const custom of config.customAddons) {
       if (custom && custom.enabled !== false && custom.manifestUrl) {
@@ -68,7 +54,6 @@ export async function executeParallelSearch(
     timeoutMs: config.providerTimeoutMs
   });
 
-  // Launch all providers concurrently with Promise.allSettled
   const searchPromises = activeProviders.map(provider => {
     const customConfig = config.customAddons?.find(c => c.id === provider.id);
     const timeoutMs = (customConfig && typeof customConfig.timeout === 'number' && customConfig.timeout > 0)
@@ -84,7 +69,6 @@ export async function executeParallelSearch(
   });
 
   const settledResults = await Promise.allSettled(searchPromises);
-
   const aggregatedSubtitles: RawSubtitleItem[] = [];
 
   settledResults.forEach((result, idx) => {

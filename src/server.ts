@@ -3,9 +3,12 @@ import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import rateLimit from 'express-rate-limit';
+import axios from 'axios';
+import QRCode from 'qrcode';
+
 import { ENV } from './config/env';
 import { StremioManifest } from './types/stremio';
-import { decodeUserConfig, encodeUserConfig, DEFAULT_USER_CONFIG } from './config/userConfig';
+import { decodeUserConfig } from './config/userConfig';
 import { parseSubtitleQuery, getAggregatedSubtitles } from './core/aggregator';
 import { handleSubtitleProxy, handleOpenSubtitlesRestDownload, handleShortIdDownload } from './proxy/subtitleProxy';
 import { SUPPORTED_LANGUAGES } from './utils/languages';
@@ -13,17 +16,14 @@ import { getAllProviders } from './providers';
 import { globalSubtitleCache } from './utils/cache';
 import { Logger } from './utils/logger';
 import { configStorage, isUuid } from './storage/configStore';
-import QRCode from 'qrcode';
 
 export function createServer(): express.Application {
   const app = express();
 
-  // Basic middleware
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // Rate Limiting
   const limiter = rateLimit({
     windowMs: ENV.RATE_LIMIT_WINDOW_MS,
     max: ENV.RATE_LIMIT_MAX,
@@ -33,7 +33,6 @@ export function createServer(): express.Application {
   });
   app.use('/subtitles', limiter);
 
-  // Helper to determine base URL dynamically or from ENV
   const getBaseUrl = (req: Request): string => {
     if (ENV.BASE_URL && ENV.BASE_URL.trim() !== '') {
       return ENV.BASE_URL.replace(/\/+$/, '');
@@ -43,7 +42,6 @@ export function createServer(): express.Application {
     return `${protocol}://${host}`;
   };
 
-  // Helper to construct Stremio manifest dynamically from user config
   const buildManifest = (configEncoded?: string): StremioManifest => {
     let name = 'AIOSubs';
     let description = 'Agregador e organizador de legendas dedicado para Stremio e Nuvio.';
@@ -66,7 +64,7 @@ export function createServer(): express.Application {
           version = userCfg.instanceVersion.trim().replace(/^v/i, '');
         }
       } catch {
-        // Fallback to default branding
+        // Use default branding on decode failure
       }
     }
 
@@ -93,13 +91,11 @@ export function createServer(): express.Application {
     };
   };
 
-  // Static Assets for UI (support both dist and src directory trees)
   const distPublic = path.join(__dirname, 'web', 'public');
   const srcPublic = path.join(__dirname, '..', 'src', 'web', 'public');
   const publicDir = fs.existsSync(distPublic) ? distPublic : srcPublic;
   app.use(express.static(publicDir));
 
-  // Health Endpoints
   const healthHandler = (_req: Request, res: Response) => {
     res.json({
       status: 'ok',
@@ -115,12 +111,10 @@ export function createServer(): express.Application {
 
   app.use('/:config', express.static(publicDir));
 
-  // API: Supported languages list
   app.get('/api/languages', (_req: Request, res: Response) => {
     res.json({ languages: SUPPORTED_LANGUAGES });
   });
 
-  // API: Providers list
   app.get('/api/providers', (_req: Request, res: Response) => {
     const list = getAllProviders().map(p => ({
       id: p.id,
@@ -132,8 +126,7 @@ export function createServer(): express.Application {
     res.json({ providers: list });
   });
 
-  // API: Validate external Stremio subtitle addon manifest URL
-  app.post('/api/manifest/validate', async (req: Request, res: Response) => {
+  app.post('/api/manifest/validate', async (req: Request, res: Response): Promise<void> => {
     let inputUrl = (req.body?.url as string) || '';
     if (!inputUrl || inputUrl.trim() === '') {
       res.status(400).json({ valid: false, error: 'URL do manifest não pode estar vazia.' });
@@ -150,7 +143,6 @@ export function createServer(): express.Application {
     }
 
     try {
-      const axios = require('axios');
       const response = await axios.get(inputUrl, {
         timeout: 8000,
         headers: {
@@ -165,7 +157,6 @@ export function createServer(): express.Application {
         return;
       }
 
-      // Check for subtitles resource
       const hasSubtitles = Array.isArray(manifest.resources) && manifest.resources.some((r: unknown) => {
         if (typeof r === 'string') return r.toLowerCase() === 'subtitles';
         if (typeof r === 'object' && r !== null && 'name' in r) {
@@ -208,7 +199,7 @@ export function createServer(): express.Application {
         manifestUrl: inputUrl,
         resources: declaredResources,
         configurable: isConfigurable,
-        configurationURL: configurationURL
+        configurationURL
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -219,8 +210,7 @@ export function createServer(): express.Application {
     }
   });
 
-  // API: Render reliable QR code data URI for mobile / Nuvio install
-  app.get('/api/qrcode', async (req: Request, res: Response) => {
+  app.get('/api/qrcode', async (req: Request, res: Response): Promise<void> => {
     const text = String(req.query.text || '').trim();
     if (!text) {
       res.status(400).json({ error: 'Texto não fornecido para geração do QR Code.' });
@@ -242,8 +232,7 @@ export function createServer(): express.Application {
     }
   });
 
-  // API: Background automatic validation for provider API keys (OpenSubtitles, SubDL, Subsource)
-  app.post('/api/validate-key/:service', async (req: Request, res: Response) => {
+  app.post('/api/validate-key/:service', async (req: Request, res: Response): Promise<void> => {
     const service = (req.params.service || '').toLowerCase();
     const apiKey = (req.body?.apiKey as string || '').trim();
 
@@ -251,8 +240,6 @@ export function createServer(): express.Application {
       res.json({ valid: false, error: 'Chave não informada.' });
       return;
     }
-
-    const axios = require('axios');
 
     if (service === 'opensubtitles') {
       try {
@@ -325,8 +312,7 @@ export function createServer(): express.Application {
     res.status(400).json({ valid: false, error: 'Serviço desconhecido' });
   });
 
-  // API: Save configuration with UUID and Password
-  app.post('/api/config/save', (req: Request, res: Response) => {
+  app.post('/api/config/save', (req: Request, res: Response): void => {
     const uuid = String(req.body?.uuid || '').trim();
     const password = String(req.body?.password || '').trim();
     const config = req.body?.config;
@@ -367,8 +353,7 @@ export function createServer(): express.Application {
     });
   });
 
-  // API: Load existing configuration by UUID and Password
-  app.post('/api/config/load', (req: Request, res: Response) => {
+  app.post('/api/config/load', (req: Request, res: Response): void => {
     const uuid = String(req.body?.uuid || '').trim();
     const password = String(req.body?.password || '').trim();
 
@@ -390,7 +375,6 @@ export function createServer(): express.Application {
     });
   });
 
-  // Configuration & Landing Page Endpoints
   app.get('/', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
@@ -403,12 +387,10 @@ export function createServer(): express.Application {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 
-  // Edit existing configuration in UI: /:config/configure
   app.get('/:config/configure', (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 
-  // Manifest Endpoints
   app.get('/manifest.json', (_req: Request, res: Response) => {
     res.json(buildManifest());
   });
@@ -417,19 +399,17 @@ export function createServer(): express.Application {
     res.json(buildManifest(req.params.config));
   });
 
-  // Subtitle Endpoints (Configured)
   const handleSubtitles = async (req: Request, res: Response): Promise<void> => {
     try {
       const configParam = req.params.config;
       const userConfig = decodeUserConfig(configParam);
-      const type = req.params.type;
-      const id = req.params.id;
+      const { type, id } = req.params;
       const baseUrl = getBaseUrl(req);
 
       const query = parseSubtitleQuery(type, id, req.query as Record<string, string>);
       const response = await getAggregatedSubtitles(query, userConfig, baseUrl);
 
-      res.setHeader('Cache-Control', 'max-age=1800, public'); // 30 mins
+      res.setHeader('Cache-Control', 'max-age=1800, public');
       res.json(response);
     } catch (err: unknown) {
       Logger.error('Failed to handle subtitles request', err);
@@ -437,28 +417,25 @@ export function createServer(): express.Application {
     }
   };
 
-  // Subtitle route definitions according to Stremio protocol
   app.get('/:config/subtitles/:type/:id.json', handleSubtitles);
   app.get('/:config/subtitles/:type/:id/:extra.json', handleSubtitles);
   app.get('/subtitles/:type/:id.json', handleSubtitles);
   app.get('/subtitles/:type/:id/:extra.json', handleSubtitles);
 
-  // Clean Subtitle Download & Proxy Endpoints (Bug 6.3 fix - Short ID, NO base64 leaked)
+  // Direct subtitle download endpoints
   app.get('/download/:id', handleShortIdDownload);
   app.get('/download/:id/:filename', handleShortIdDownload);
   app.get('/sub/:id', handleShortIdDownload);
   app.get('/sub/:id/:filename', handleShortIdDownload);
 
-  // Legacy Subtitle Proxy Endpoints (retained for backward compatibility)
+  // Backward compatibility proxy endpoints
   app.get('/proxy/subtitle/:data', handleSubtitleProxy);
   app.get('/proxy/download/os-rest/:fileId', handleOpenSubtitlesRestDownload);
 
-  // Fallback 404 handler
   app.use((req: Request, res: Response) => {
     res.status(404).json({ error: 'Endpoint not found', path: req.path });
   });
 
-  // Global Error Handler
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     Logger.error('Unhandled server exception', err);
     res.status(500).json({ error: 'Internal server error' });

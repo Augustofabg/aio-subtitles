@@ -14,16 +14,11 @@ export interface ProxyDownloadEntry {
   fileId?: string | number;
 }
 
-// In-memory cache holding shortId -> ProxyDownloadEntry mapping with 4-hour TTL (Bug 6.3 fix)
 const proxyDownloadStore = new LRUCache<string, ProxyDownloadEntry>({
   max: 10000,
-  ttl: 4 * 60 * 60 * 1000 // 4 hours TTL
+  ttl: 4 * 60 * 60 * 1000
 });
 
-/**
- * Registers a subtitle download URL and returns a clean, human-readable short ID.
- * NEVER leaks base64 or technical URLs to the client.
- */
 export function registerProxyDownload(entry: ProxyDownloadEntry): string {
   const cleanProvider = (entry.provider || 'sub').replace(/[^a-z0-9]/gi, '').toLowerCase();
   const randomSuffix = Math.random().toString(36).substring(2, 9);
@@ -33,9 +28,6 @@ export function registerProxyDownload(entry: ProxyDownloadEntry): string {
   return shortId;
 }
 
-/**
- * Detects if a buffer is likely UTF-8 or Windows-1252 / ISO-8859-1 and normalizes to UTF-8
- */
 function toUtf8(buffer: Buffer): string {
   try {
     const utf8Str = buffer.toString('utf8');
@@ -48,16 +40,10 @@ function toUtf8(buffer: Buffer): string {
   }
 }
 
-/**
- * Bug 6.3 fix: Clean Short ID Download endpoint:
- * GET /download/:id
- * GET /download/:id/:filename
- */
 export async function handleShortIdDownload(req: Request, res: Response): Promise<void> {
   let shortId = req.params.id;
   let entry = proxyDownloadStore.get(shortId);
 
-  // If shortId has file extension (e.g. "os_abc123.srt"), resolve by stripping extension
   if (!entry && shortId.includes('.')) {
     const cleanId = shortId.replace(/\.(srt|vtt|sub)$/i, '');
     entry = proxyDownloadStore.get(cleanId);
@@ -75,7 +61,6 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
   const targetUrl = entry.originalUrl;
 
   try {
-    // If it's an OpenSubtitles REST fileId download
     if (entry.fileId && entry.apiKey) {
       const downloadRes = await axios.post<{ link: string }>(
         'https://api.opensubtitles.com/api/v1/download',
@@ -110,7 +95,6 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
       return;
     }
 
-    // Standard download from upstream URL
     const response = await axios.get<ArrayBuffer>(targetUrl, {
       responseType: 'arraybuffer',
       timeout: 12000,
@@ -124,7 +108,6 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
     let subtitleContent = '';
     const isVtt = filename.toLowerCase().endsWith('.vtt') || targetUrl.toLowerCase().endsWith('.vtt');
 
-    // Check if response is a ZIP file (starts with PK)
     if (buffer.length > 4 && buffer[0] === 0x50 && buffer[1] === 0x4B) {
       try {
         const zip = new AdmZip(buffer);
@@ -132,12 +115,7 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
         const subEntry = entries.find(e =>
           !e.isDirectory && (e.entryName.toLowerCase().endsWith('.srt') || e.entryName.toLowerCase().endsWith('.vtt'))
         );
-
-        if (subEntry) {
-          subtitleContent = toUtf8(subEntry.getData());
-        } else {
-          subtitleContent = toUtf8(buffer);
-        }
+        subtitleContent = subEntry ? toUtf8(subEntry.getData()) : toUtf8(buffer);
       } catch {
         subtitleContent = toUtf8(buffer);
       }
@@ -159,9 +137,6 @@ export async function handleShortIdDownload(req: Request, res: Response): Promis
   }
 }
 
-/**
- * Legacy base64 subtitle proxy (retained for backward compatibility)
- */
 export async function handleSubtitleProxy(req: Request, res: Response): Promise<void> {
   const { data } = req.params;
   const filename = (req.query.filename as string) || 'subtitle.srt';
@@ -219,9 +194,6 @@ export async function handleSubtitleProxy(req: Request, res: Response): Promise<
   }
 }
 
-/**
- * Handles OpenSubtitles REST API file download proxy
- */
 export async function handleOpenSubtitlesRestDownload(req: Request, res: Response): Promise<void> {
   const { fileId } = req.params;
   const apiKey = req.query.apiKey as string;

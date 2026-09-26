@@ -14,7 +14,6 @@ export interface StoredConfigRecord {
 
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const STORE_FILE = path.join(DATA_DIR, 'configurations.json');
-
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function isUuid(str: string): boolean {
@@ -90,7 +89,6 @@ class ConfigStorage {
     const existing = this.cache.get(cleanUuid);
 
     if (existing) {
-      // Verify password
       const match = bcrypt.compareSync(passwordPlain, existing.passwordHash);
       if (!match) {
         return { success: false, error: 'UUID ou senha inválidos.' };
@@ -103,7 +101,6 @@ class ConfigStorage {
       return { success: true };
     }
 
-    // Create new record with bcrypt hash
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(passwordPlain, salt);
 

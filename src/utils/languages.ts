@@ -416,28 +416,3 @@ export function normalizeLanguageCode(raw: string | undefined | null): string | 
   
   return null;
 }
-
-/**
- * Returns LanguageInfo object for a given code/alias
- */
-export function getLanguageInfo(raw: string | undefined | null): LanguageInfo | undefined {
-  if (!raw) return undefined;
-  const clean = raw.trim().toLowerCase().replace(/_/g, '-');
-  return LOOKUP_MAP.get(clean);
-}
-
-/**
- * Returns flag emoji for a language code (defaults to 🌐)
- */
-export function getLanguageFlag(raw: string | undefined | null): string {
-  const info = getLanguageInfo(raw);
-  return info ? info.flag : '🌐';
-}
-
-/**
- * Returns English display name for a language code
- */
-export function getLanguageDisplayName(raw: string | undefined | null): string {
-  const info = getLanguageInfo(raw);
-  return info ? info.name : (raw || 'Unknown');
-}

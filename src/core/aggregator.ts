@@ -7,9 +7,6 @@ import { deduplicateSubtitles, prioritizeSubtitles } from '../utils/deduplicator
 import { globalSubtitleCache } from '../utils/cache';
 import { Logger } from '../utils/logger';
 
-/**
- * Parses Stremio parameters into a normalized SubtitleQuery
- */
 export function parseSubtitleQuery(
   type: string,
   id: string,
@@ -47,14 +44,6 @@ export function parseSubtitleQuery(
   };
 }
 
-/**
- * Main subtitle aggregation pipeline
- * 1. Fetch raw subtitles from all active native and imported connectors in parallel.
- * 2. Strictly normalize `lang` to ISO 639-2. Discard unmapped/invalid languages with warning log.
- * 3. Whitelist filter on normalized ISO 639-2 codes.
- * 4. Provider prioritization and deduplication.
- * 5. Return clean response to player with original provider id, normalized lang, and direct url.
- */
 export async function getAggregatedSubtitles(
   query: SubtitleQuery,
   config: UserConfig,
@@ -72,9 +61,6 @@ export async function getAggregatedSubtitles(
     query.episode
   );
 
-  // =========================================================================
-  // STEP 1: Fetch raw results from all connectors (native + custom addons)
-  // =========================================================================
   let rawSubtitles = globalSubtitleCache.get(cacheKey);
 
   if (!rawSubtitles) {
@@ -84,10 +70,7 @@ export async function getAggregatedSubtitles(
     Logger.info(`Serving subtitles from cache for ${query.id} (${rawSubtitles.length} items)`);
   }
 
-  // =========================================================================
-  // STEP 2: Normalizar o campo lang para ISO 639-2
-  // Descartar qualquer resultado com código não resolvido para evitar categoria "Desconhecido".
-  // =========================================================================
+  // Canonicalize language codes to ISO 639-2 and drop unsupported codes to avoid player issues
   const normalizedItems: RawSubtitleItem[] = [];
 
   for (const sub of rawSubtitles) {
@@ -106,7 +89,6 @@ export async function getAggregatedSubtitles(
       continue;
     }
 
-    // Overwrite with normalized ISO 639-2 code so raw lang never leaks to player
     sub.lang = validation.normalizedLang;
     normalizedItems.push(sub);
   }
@@ -115,9 +97,6 @@ export async function getAggregatedSubtitles(
     allowUnknown: config.allowUnknownLanguages
   });
 
-  // =========================================================================
-  // STEP 3: Aplicar filtro de idiomas permitidos (whitelist) sobre o lang normalizado
-  // =========================================================================
   const whitelistedItems = normalizedItems.filter(item =>
     isLanguageWhitelisted(item.lang, config.languages)
   );
@@ -126,9 +105,6 @@ export async function getAggregatedSubtitles(
     whitelist: config.languages
   });
 
-  // =========================================================================
-  // STEP 4: Priorização por ordem de provedor e Deduplicação
-  // =========================================================================
   let orderedItems = prioritizeSubtitles(whitelistedItems, config.providerPriority);
 
   if (config.deduplication) {
@@ -137,10 +113,7 @@ export async function getAggregatedSubtitles(
     Logger.info(`Deduplication: ${beforeCount} -> ${orderedItems.length} subtitles`);
   }
 
-  // =========================================================================
-  // STEP 5: Resposta final limpa ao player Stremio/Nuvio
-  // Retorna id, lang (normalizado) e url originais sem camada de reescrita de rótulo.
-  // =========================================================================
+  // Build clean response with original IDs, normalized language codes, and absolute URLs
   const subtitles: StremioSubtitle[] = orderedItems.map(item => {
     let finalUrl = item.url;
     if (finalUrl.startsWith('/')) {

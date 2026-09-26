@@ -1,4 +1,4 @@
-import { UserConfig, PartialUserConfig } from '../types/config';
+import { UserConfig, PartialUserConfig, CustomAddonConfig } from '../types/config';
 import { isUuid, configStorage } from '../storage/configStore';
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
@@ -32,9 +32,6 @@ export const DEFAULT_USER_CONFIG: UserConfig = {
   cacheTtlMinutes: 30
 };
 
-/**
- * Encodes a UserConfig into a URL-safe Base64 string
- */
 export function encodeUserConfig(config: UserConfig): string {
   const json = JSON.stringify(config);
   return Buffer.from(json, 'utf8')
@@ -44,16 +41,11 @@ export function encodeUserConfig(config: UserConfig): string {
     .replace(/=+$/, '');
 }
 
-/**
- * Decodes a configuration string (UUID, Base64URL, standard Base64, or URI-encoded JSON)
- * and deep-merges with default configuration.
- */
 export function decodeUserConfig(encodedStr?: string | null): UserConfig {
   if (!encodedStr || encodedStr.trim() === '' || encodedStr === 'default') {
     return { ...DEFAULT_USER_CONFIG };
   }
 
-  // 1. Check if encodedStr is a UUID in the persistent store
   if (isUuid(encodedStr)) {
     const stored = configStorage.getConfigByUuid(encodedStr);
     if (stored) {
@@ -63,7 +55,6 @@ export function decodeUserConfig(encodedStr?: string | null): UserConfig {
 
   try {
     let jsonStr = '';
-    // Normalize base64url
     let base64 = encodedStr.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) {
       base64 += '=';
@@ -71,9 +62,8 @@ export function decodeUserConfig(encodedStr?: string | null): UserConfig {
 
     try {
       jsonStr = Buffer.from(base64, 'base64').toString('utf8');
-      JSON.parse(jsonStr); // test parse
+      JSON.parse(jsonStr);
     } catch {
-      // If direct base64 failed, try URL decode then parse
       try {
         jsonStr = decodeURIComponent(encodedStr);
         JSON.parse(jsonStr);
@@ -84,34 +74,16 @@ export function decodeUserConfig(encodedStr?: string | null): UserConfig {
 
     const parsed: PartialUserConfig = JSON.parse(jsonStr);
     return mergeWithDefaults(parsed);
-  } catch (err) {
-    // If decoding or parsing completely fails, return safe defaults
+  } catch {
     return { ...DEFAULT_USER_CONFIG };
   }
 }
 
-/**
- * Merges partial user config with defaults, ensuring valid types and bounds
- */
 export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
-  const customAddons = Array.isArray((partial as unknown as { customAddons?: unknown }).customAddons)
-    ? ((partial as unknown as { customAddons: unknown[] }).customAddons
-        .filter(a => a && typeof a === 'object' && typeof (a as { manifestUrl?: unknown }).manifestUrl === 'string')
-        .map(a => {
-          const item = a as {
-            id?: string;
-            name?: string;
-            manifestUrl: string;
-            enabled?: boolean;
-            logo?: string;
-            description?: string;
-            timeout?: unknown;
-            resources?: string[];
-            selectedResources?: string[];
-            configurable?: boolean;
-            configurationURL?: string;
-          };
-
+  const customAddons: CustomAddonConfig[] = Array.isArray(partial.customAddons)
+    ? partial.customAddons
+        .filter((a): a is CustomAddonConfig => Boolean(a && typeof a === 'object' && typeof a.manifestUrl === 'string'))
+        .map(item => {
           let timeoutVal = 20000;
           if (typeof item.timeout === 'number' && !isNaN(item.timeout)) {
             timeoutVal = Math.max(1000, Math.min(60000, Math.round(item.timeout)));
@@ -132,10 +104,10 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
             configurationURL: typeof item.configurationURL === 'string' ? item.configurationURL : undefined,
             timeout: timeoutVal
           };
-        }))
+        })
     : [];
 
-  // Migration for legacy providerPriority: map opensubtitles-rest / opensubtitles-v3 -> opensubtitles, remove addic7ed
+  // Migration for legacy provider ids: map opensubtitles-rest / opensubtitles-v3 -> opensubtitles, drop deprecated addic7ed
   let rawPriority: string[] = [];
   if (Array.isArray(partial.providerPriority) && partial.providerPriority.length > 0) {
     for (const item of partial.providerPriority) {
@@ -199,7 +171,6 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       : DEFAULT_USER_CONFIG.cacheTtlMinutes
   };
 
-  // Merge individual providers & perform backward-compatible migration
   if (partial.providers && typeof partial.providers === 'object') {
     for (const [key, val] of Object.entries(partial.providers)) {
       if (!val || typeof val !== 'object') continue;
@@ -208,7 +179,6 @@ export function mergeWithDefaults(partial: PartialUserConfig): UserConfig {
       if (key === 'opensubtitles-rest' || key === 'opensubtitles-v3') {
         targetKey = 'opensubtitles';
       } else if (key === 'addic7ed') {
-        // Discard deprecated addic7ed
         continue;
       }
 

@@ -21,18 +21,15 @@ export interface CustomAddonConfig {
 }
 
 export interface UserConfig {
-  // Instance branding (Home page)
   instanceName?: string;
   instanceDesc?: string;
   instanceLogo?: string;
   instanceVersion?: string;
 
-  // Services & Addons
   providers: Record<string, ProviderConfigItem>;
   customAddons: CustomAddonConfig[];
   addonFetchingStrategy?: 'default' | 'fastest';
 
-  // Filters & Ordering
   providerPriority: string[];
   languages: string[];
   allowUnknownLanguages: boolean;
@@ -41,7 +38,6 @@ export interface UserConfig {
   deduplication: boolean;
   deduplicationStrategy?: 'both' | 'hash' | 'fuzzy';
 
-  // System & Cache
   cacheTtlMinutes: number;
 }
 

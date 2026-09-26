@@ -3,10 +3,6 @@
  * Following AIOStreams Visual and Logical Standards
  */
 
-// =============================================================================
-// =============================================================================
-// Material Design Icons Constants (Standardized Icon System)
-// =============================================================================
 const MDI_ICONS = {
   check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>',
   check16: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/></svg>',
@@ -26,8 +22,6 @@ const MDI_ICONS = {
   puzzle: '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M20.5,11H19V7C19,5.89 18.1,5 17,5H13V3.5A2.5,2.5 0 0,0 10.5,1A2.5,2.5 0 0,0 8,3.5V5H4A2,2 0 0,0 2,7V10.8H3.5C5,10.8 6.2,12 6.2,13.5C6.2,15 5,16.2 3.5,16.2H2V20A2,2 0 0,0 4,22H7.8V20.5C7.8,19 9,17.8 10.5,17.8C12,17.8 13.2,19 13.2,20.5V22H17A2,2 0 0,0 19,20V16H20.5A2.5,2.5 0 0,0 23,13.5A2.5,2.5 0 0,0 20.5,11Z"/></svg>'
 };
 
-// 1. Default Configuration & Services Metadata
-// =============================================================================
 const DEFAULT_CONFIG = {
   instanceName: 'AIOSubs',
   instanceDesc: 'Agregador e organizador de legendas',
@@ -102,9 +96,6 @@ const FALLBACK_LANGUAGES = [
   { code: 'heb', name: 'Hebrew' }
 ];
 
-// =============================================================================
-// 2. Application State & Views
-// =============================================================================
 const PAGES_ORDER = ['home', 'services', 'addons', 'filters', 'install'];
 
 const state = {
@@ -189,9 +180,6 @@ function setupDynamicPasswordInput(inputId, wrapId, toggleBtnId, showEyeId, hide
   updateVisibility();
 }
 
-// =============================================================================
-// 3. Helper Functions: UUID & Random Password
-// =============================================================================
 function generateUuid() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -218,9 +206,6 @@ function isUuid(str) {
   return typeof str === 'string' && UUID_REGEX.test(str.trim());
 }
 
-// =============================================================================
-// 4. Initialization
-// =============================================================================
 document.addEventListener('DOMContentLoaded', async () => {
   setupLandingActions();
   setupNavigation();
@@ -245,21 +230,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   } catch {
-    // Keep fallback list
-  }
+      }
 
   renderAll();
 });
 
-// =============================================================================
-// 5. Configuration Loading & URL Helpers
-// =============================================================================
 async function loadInitialConfiguration() {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   const firstPart = pathParts.length > 0 ? pathParts[0].toLowerCase() : '';
 
-  // 1. Direct route: /dashboard
-  if (firstPart === 'dashboard') {
+    if (firstPart === 'dashboard') {
     showLandingView();
     setTimeout(() => {
       openDashboardLoginModal();
@@ -267,8 +247,7 @@ async function loadInitialConfiguration() {
     return;
   }
 
-  // 2. Direct route: /configure (New configuration wizard)
-  if (firstPart === 'configure') {
+    if (firstPart === 'configure') {
     state.isConfigCreated = false;
     state.uuid = '';
     state.password = '';
@@ -279,8 +258,7 @@ async function loadInitialConfiguration() {
     return;
   }
 
-  // 3. Direct route with UUID: /:uuid or /:uuid/configure
-  if (firstPart && isUuid(firstPart)) {
+    if (firstPart && isUuid(firstPart)) {
     state.uuid = firstPart;
     const storedPass = localStorage.getItem(`aiosubtitles_pass_${state.uuid}`) || '';
     if (storedPass) {
@@ -302,8 +280,7 @@ async function loadInitialConfiguration() {
           return;
         }
       } catch {
-        // Fallback to login modal
-      }
+              }
     }
     // UUID present but password missing or invalid: show landing & open dashboard login modal
     showLandingView();
@@ -313,8 +290,7 @@ async function loadInitialConfiguration() {
     return;
   }
 
-  // 4. Default root landing page (/)
-  state.isConfigCreated = false;
+    state.isConfigCreated = false;
   state.uuid = '';
   state.password = '';
   applyConfigWithMigration(DEFAULT_CONFIG);
@@ -435,12 +411,6 @@ function applyConfigWithMigration(parsed) {
   state.config = merged;
 }
 
-// =============================================================================
-// 6. Navigation & Topbar
-// =============================================================================
-// =============================================================================
-// 6. Navigation & Landing Actions
-// =============================================================================
 function setupLandingActions() {
   document.getElementById('btn-landing-configure')?.addEventListener('click', () => {
     state.isConfigCreated = false;
@@ -492,21 +462,38 @@ function setupNavigation() {
   });
 }
 
+function activatePageView(targetView, pageId) {
+  document.querySelectorAll('.page-view').forEach(view => {
+    view.classList.remove('active');
+    view.style.opacity = '';
+    view.style.transition = '';
+  });
+
+  if (targetView) {
+    targetView.classList.remove('active');
+    void targetView.offsetWidth;
+    targetView.classList.add('active');
+  }
+
+  if (pageId === 'filters') {
+    switchFilterTab(state.activeFilterTab || 'whitelist');
+  } else if (pageId === 'install') {
+    renderInstallPageDetails();
+  }
+}
+
 function navigateToPage(pageId) {
-  if (!PAGES_ORDER.includes(pageId)) return;
-  if (state.activePage === pageId) return;
+  if (!PAGES_ORDER.includes(pageId) || state.activePage === pageId) return;
 
   const currentView = document.getElementById(`page-${state.activePage}`);
   const targetView = document.getElementById(`page-${pageId}`);
 
   state.activePage = pageId;
 
-  // Rule 8: Missing Credentials appears ONLY on Services page
   if (pageId !== 'services') {
     hideMissingCredentialsBanner();
   }
 
-  // Update navigation buttons immediately for crisp tactile feedback
   document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
     item.classList.toggle('active', item.getAttribute('data-page') === pageId);
   });
@@ -520,44 +507,9 @@ function navigateToPage(pageId) {
   if (currentView && currentView !== targetView && currentView.classList.contains('active')) {
     currentView.style.opacity = '0';
     currentView.style.transition = 'opacity 60ms ease-out';
-
-    setTimeout(() => {
-      document.querySelectorAll('.page-view').forEach(view => {
-        view.classList.remove('active');
-        view.style.opacity = '';
-        view.style.transition = '';
-      });
-
-      if (targetView) {
-        targetView.classList.remove('active');
-        void targetView.offsetWidth; // Trigger reflow for smooth progressive slide-up
-        targetView.classList.add('active');
-      }
-
-      if (pageId === 'filters') {
-        switchFilterTab(state.activeFilterTab || 'whitelist');
-      } else if (pageId === 'install') {
-        renderInstallPageDetails();
-      }
-    }, 60);
+    setTimeout(() => activatePageView(targetView, pageId), 60);
   } else {
-    document.querySelectorAll('.page-view').forEach(view => {
-      view.classList.remove('active');
-      view.style.opacity = '';
-      view.style.transition = '';
-    });
-
-    if (targetView) {
-      targetView.classList.remove('active');
-      void targetView.offsetWidth;
-      targetView.classList.add('active');
-    }
-
-    if (pageId === 'filters') {
-      switchFilterTab(state.activeFilterTab || 'whitelist');
-    } else if (pageId === 'install') {
-      renderInstallPageDetails();
-    }
+    activatePageView(targetView, pageId);
   }
 }
 
@@ -569,63 +521,8 @@ function setupTopbarActions() {
   document.getElementById('btn-close-missing-cred')?.addEventListener('click', () => {
     hideMissingCredentialsBanner();
   });
-
-  // Unsaved banner: Restore draft
-  document.getElementById('btn-restore-draft')?.addEventListener('click', () => {
-    if (state.uuid) {
-      const draft = localStorage.getItem(`aiosubtitles_draft_${state.uuid}`);
-      if (draft) {
-        try {
-          applyConfigWithMigration(JSON.parse(draft));
-          renderAll();
-          notifyConfigChanged();
-          showToast('Rascunho restaurado com sucesso.');
-          return;
-        } catch {
-          // ignore
-        }
-      }
-    }
-    showToast('Nenhum rascunho anterior disponível.');
-  });
-
-  // Unsaved banner: Discard draft
-  document.getElementById('btn-discard-draft')?.addEventListener('click', () => {
-    if (state.lastSavedConfigJson) {
-      applyConfigWithMigration(JSON.parse(state.lastSavedConfigJson));
-      if (state.uuid) {
-        localStorage.removeItem(`aiosubtitles_draft_${state.uuid}`);
-      }
-      renderAll();
-      notifyConfigChanged();
-      showToast('Alterações não salvas descartadas.');
-    }
-  });
-
-  // Toggle "Don't keep drafts on this browser"
-  const toggleNoDrafts = document.getElementById('toggle-no-drafts');
-  if (toggleNoDrafts) {
-    toggleNoDrafts.checked = getNoDraftsSetting();
-    toggleNoDrafts.addEventListener('change', (e) => {
-      if (e.target.checked) {
-        localStorage.setItem('aiosubtitles_no_drafts', 'true');
-        if (state.uuid) {
-          localStorage.removeItem(`aiosubtitles_draft_${state.uuid}`);
-        }
-        notifyConfigChanged();
-        showToast('Rascunhos desativados neste navegador.');
-      } else {
-        localStorage.removeItem('aiosubtitles_no_drafts');
-        notifyConfigChanged();
-        showToast('Rascunhos ativados neste navegador.');
-      }
-    });
-  }
 }
 
-// =============================================================================
-// 7. Missing Credentials Banner
-// =============================================================================
 function showMissingCredentialsBanner(servicesList) {
   const banner = document.getElementById('missing-credentials-banner');
   const listEl = document.getElementById('missing-cred-list');
@@ -670,9 +567,6 @@ function closeModal(modalId) {
   }, 120);
 }
 
-// =============================================================================
-// 8. Home Actions & Sign Out
-// =============================================================================
 function setupHomeActions() {
   document.getElementById('btn-edit-instance-name')?.addEventListener('click', openBrandingModal);
   document.getElementById('btn-edit-instance-desc')?.addEventListener('click', openBrandingModal);
@@ -698,8 +592,7 @@ function setupHomeActions() {
   document.getElementById('btn-cancel-branding')?.addEventListener('click', closeBrandingModal);
   document.getElementById('btn-close-branding-modal')?.addEventListener('click', closeBrandingModal);
 
-  // Sign out button triggers confirmation modal
-  document.getElementById('btn-home-signout')?.addEventListener('click', () => {
+    document.getElementById('btn-home-signout')?.addEventListener('click', () => {
     openModal('modal-signout-confirm');
   });
 }
@@ -787,9 +680,6 @@ function renderHomeBranding() {
   }
 }
 
-// =============================================================================
-// 9. Services Actions & Rules: OFF by default & Credentials Check
-// =============================================================================
 function setupServicesActions() {
   const serviceIds = ['opensubtitles', 'subdl', 'subsource'];
 
@@ -797,8 +687,7 @@ function setupServicesActions() {
     const toggle = document.getElementById(`svc-toggle-${id}`);
     if (toggle) {
       toggle.addEventListener('click', async (e) => {
-        // Intercept toggle state change
-        const isTurningOn = toggle.checked;
+                const isTurningOn = toggle.checked;
 
         if (isTurningOn) {
           // Rule: cannot be turned ON without valid API key
@@ -806,8 +695,7 @@ function setupServicesActions() {
           const apiKey = prov?.apiKey?.trim() || '';
 
           if (!apiKey) {
-            // Revert switch to OFF without opening modal (Rule 10, 11)
-            e.preventDefault();
+                        e.preventDefault();
             toggle.checked = false;
             prov.enabled = false;
             showMissingCredentialsBanner([SERVICES_META[id]?.name || id]);
@@ -869,8 +757,7 @@ function setupServicesActions() {
       });
     }
 
-    // Configure gear button
-    const btnGear = document.getElementById(`btn-config-${id}`);
+        const btnGear = document.getElementById(`btn-config-${id}`);
     if (btnGear) {
       btnGear.addEventListener('click', () => {
         openServiceConfigModal(id);
@@ -878,8 +765,7 @@ function setupServicesActions() {
     }
   });
 
-  // Services search filter
-  const searchInput = document.getElementById('search-services');
+    const searchInput = document.getElementById('search-services');
   if (searchInput) {
     searchInput.addEventListener('input', () => {
       const q = searchInput.value.toLowerCase().trim();
@@ -910,8 +796,7 @@ function setupServicesActions() {
     });
   }
 
-  // Eye button to show/hide API key
-  const btnEye = document.getElementById('btn-modal-toggle-eye');
+    const btnEye = document.getElementById('btn-modal-toggle-eye');
   const eyeShow = document.getElementById('eye-icon-show');
   const eyeHide = document.getElementById('eye-icon-hide');
   if (btnEye && keyInput) {
@@ -928,8 +813,7 @@ function setupServicesActions() {
     });
   }
 
-  // Modal Save & Cancel
-  document.getElementById('btn-save-service-modal')?.addEventListener('click', () => {
+    document.getElementById('btn-save-service-modal')?.addEventListener('click', () => {
     const serviceId = document.getElementById('modal-service-id').value;
     const newKey = keyInput ? keyInput.value.trim() : '';
 
@@ -997,8 +881,7 @@ function triggerAutoValidation(serviceId, apiKey) {
     return;
   }
 
-  // Show discrete loading spinner
-  statusEl.className = 'api-key-validation-indicator loading';
+    statusEl.className = 'api-key-validation-indicator loading';
   statusEl.innerHTML = '';
   statusEl.title = 'Validando chave...';
 
@@ -1042,9 +925,6 @@ function renderServicesState() {
   });
 }
 
-// =============================================================================
-// 10. Addons Actions (Imported Only — NO MARKETPLACE)
-// =============================================================================
 function setupAddonsActions() {
   const btnImport = document.getElementById('btn-import-manifest');
   const inputUrl = document.getElementById('input-manifest-url');
@@ -1122,8 +1002,7 @@ function setupAddonsActions() {
     });
   }
 
-  // Stepper handlers for Addon Editor modal
-  document.getElementById('btn-edit-timeout-up')?.addEventListener('click', () => {
+    document.getElementById('btn-edit-timeout-up')?.addEventListener('click', () => {
     const input = document.getElementById('edit-addon-timeout');
     if (input) {
       let val = parseInt(input.value, 10) || 20000;
@@ -1141,8 +1020,7 @@ function setupAddonsActions() {
     }
   });
 
-  // Addon Fetching Strategy selector
-  const selectFetching = document.getElementById('select-fetching-strategy');
+    const selectFetching = document.getElementById('select-fetching-strategy');
   if (selectFetching) {
     selectFetching.value = state.config.addonFetchingStrategy || 'default';
     setupCustomSelect('wrap-fetching-strategy', 'select-fetching-strategy', (val) => {
@@ -1340,15 +1218,8 @@ function closeEditAddonModal() {
   closeModal('modal-edit-addon');
 }
 
-// =============================================================================
-// 11. Filters Actions (Priority, Whitelist, Remap, Deduplication)
-// =============================================================================
-// =============================================================================
-// 11. Filters Actions (Lateral Sub-Nav: Whitelist, Remap + Dedup, Priority)
-// =============================================================================
 function setupFiltersActions() {
-  // 1. Sub-navigation tab switching
-  const tabButtons = document.querySelectorAll('.filters-nav-item');
+    const tabButtons = document.querySelectorAll('.filters-nav-item');
   tabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const tabId = btn.getAttribute('data-filter-tab');
@@ -1358,8 +1229,7 @@ function setupFiltersActions() {
     });
   });
 
-  // 2. Whitelist: Quick selection buttons
-  document.getElementById('btn-quick-pt-en')?.addEventListener('click', () => {
+    document.getElementById('btn-quick-pt-en')?.addEventListener('click', () => {
     state.config.languages = ['pob', 'por', 'eng'];
     renderWhitelistTags();
     renderLanguageChips(document.getElementById('search-languages')?.value || '');
@@ -1375,16 +1245,14 @@ function setupFiltersActions() {
     notifyConfigChanged();
   });
 
-  // 3. Whitelist: Real-time search filter
-  const searchLangInput = document.getElementById('search-languages');
+    const searchLangInput = document.getElementById('search-languages');
   if (searchLangInput) {
     searchLangInput.addEventListener('input', () => {
       renderLanguageChips(searchLangInput.value.toLowerCase().trim());
     });
   }
 
-  // 4. Remap: Add rule button
-  document.getElementById('btn-add-remap')?.addEventListener('click', () => {
+    document.getElementById('btn-add-remap')?.addEventListener('click', () => {
     const fromInput = document.getElementById('input-remap-from');
     const toInput = document.getElementById('input-remap-to');
     const fromVal = fromInput ? fromInput.value.trim().toLowerCase() : '';
@@ -1407,8 +1275,7 @@ function setupFiltersActions() {
     showToast(`Regra "${fromVal} → ${toVal}" adicionada.`);
   });
 
-  // 5. Deduplication: Toggle & Strategy
-  const toggleDedup = document.getElementById('toggle-deduplication');
+    const toggleDedup = document.getElementById('toggle-deduplication');
   const dedupStrategyRow = document.getElementById('dedup-strategy-row');
 
   if (toggleDedup) {
@@ -1831,9 +1698,6 @@ function renderFiltersPriority() {
   });
 }
 
-// =============================================================================
-// 12. Install Addon Page & Save Configuration
-// =============================================================================
 function syncConnectorTimeout(newVal) {
   let val = parseInt(newVal, 10);
   if (isNaN(val) || val < 2000) val = 2000;
@@ -1845,8 +1709,7 @@ function syncConnectorTimeout(newVal) {
 }
 
 function setupInstallPageActions() {
-  // Backup: Export configuration to JSON
-  document.getElementById('btn-export-backup')?.addEventListener('click', () => {
+    document.getElementById('btn-export-backup')?.addEventListener('click', () => {
     const backupData = {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
@@ -1865,8 +1728,7 @@ function setupInstallPageActions() {
     showToast('Configurações exportadas com sucesso!');
   });
 
-  // Backup: Import configuration from JSON
-  const fileImportInput = document.getElementById('file-import-backup');
+    const fileImportInput = document.getElementById('file-import-backup');
   document.getElementById('btn-import-backup')?.addEventListener('click', () => {
     fileImportInput?.click();
   });
@@ -1896,8 +1758,7 @@ function setupInstallPageActions() {
     reader.readAsText(file);
   });
 
-  // Create Configuration Form Handlers
-  setupDynamicPasswordInput(
+    setupDynamicPasswordInput(
     'create-input-password',
     'create-password-wrap',
     'btn-toggle-create-eye',
@@ -1913,8 +1774,7 @@ function setupInstallPageActions() {
     'create-confirm-eye-hide'
   );
 
-  // Button: Create Configuration
-  document.getElementById('btn-create-config')?.addEventListener('click', async () => {
+    document.getElementById('btn-create-config')?.addEventListener('click', async () => {
     const passInput = document.getElementById('create-input-password');
     const confirmInput = document.getElementById('create-input-confirm-password');
     const errBox = document.getElementById('create-config-error');
@@ -2012,16 +1872,14 @@ function setupInstallPageActions() {
     }
   });
 
-  // Copy UUID
-  document.getElementById('btn-copy-uuid')?.addEventListener('click', () => {
+    document.getElementById('btn-copy-uuid')?.addEventListener('click', () => {
     if (state.uuid) {
       navigator.clipboard.writeText(state.uuid);
       showToast('UUID copiado!');
     }
   });
 
-  // Dynamic Password Input with Eye Toggle for Save Section (hidden when empty)
-  setupDynamicPasswordInput(
+    setupDynamicPasswordInput(
     'input-user-password',
     'user-password-wrap',
     'btn-toggle-pass-eye',
@@ -2035,13 +1893,11 @@ function setupInstallPageActions() {
     }
   );
 
-  // Explicit Save button on Save Configuration section
-  document.getElementById('btn-explicit-save')?.addEventListener('click', () => {
+    document.getElementById('btn-explicit-save')?.addEventListener('click', () => {
     saveCurrentConfiguration(false);
   });
 
-  // Copy Direct Manifest URL
-  document.getElementById('btn-copy-manifest')?.addEventListener('click', () => {
+    document.getElementById('btn-copy-manifest')?.addEventListener('click', () => {
     const input = document.getElementById('final-manifest-url');
     if (input && input.value && state.isConfigCreated && state.uuid) {
       navigator.clipboard.writeText(input.value);
@@ -2049,8 +1905,7 @@ function setupInstallPageActions() {
     }
   });
 
-  // Client Badges
-  document.getElementById('pill-open-stremio')?.addEventListener('click', () => {
+    document.getElementById('pill-open-stremio')?.addEventListener('click', () => {
     const link = document.getElementById('link-install-stremio');
     if (link && link.href && state.isConfigCreated && state.uuid) {
       window.location.href = link.href;
@@ -2072,8 +1927,7 @@ function setupInstallPageActions() {
     }
   });
 
-  // Connector Timeout on Install page (Unified numeric input with custom stepper)
-  const timeoutInput = document.getElementById('install-addon-timeout');
+    const timeoutInput = document.getElementById('install-addon-timeout');
   if (timeoutInput) {
     timeoutInput.value = state.config.providerTimeoutMs || 6000;
     timeoutInput.addEventListener('change', () => {
@@ -2098,8 +1952,7 @@ function setupInstallPageActions() {
 }
 
 async function saveCurrentConfiguration(andShowInstall = false) {
-  // 1. Validation check on active services
-  const missingCreds = [];
+    const missingCreds = [];
   const nativeIds = ['opensubtitles', 'subdl', 'subsource'];
   for (const id of nativeIds) {
     const prov = state.config.providers[id];
@@ -2130,8 +1983,7 @@ async function saveCurrentConfiguration(andShowInstall = false) {
     state.password = passInput.value.trim();
   }
 
-  // 2. Save configuration to backend store
-  try {
+    try {
     const res = await fetch('/api/config/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2237,16 +2089,12 @@ function renderInstallPageDetails() {
     }
   }
 
-  // Connector Timeout Display (Unified numeric input)
-  const timeoutInput = document.getElementById('install-addon-timeout');
+    const timeoutInput = document.getElementById('install-addon-timeout');
   if (timeoutInput) {
     timeoutInput.value = state.config.providerTimeoutMs || 6000;
   }
 }
 
-// =============================================================================
-// 13. Dashboard Login Modal & Load Configuration Modal
-// =============================================================================
 function openDashboardLoginModal(prefillUuid = '') {
   const uuidInput = document.getElementById('dashboard-input-uuid');
   const passInput = document.getElementById('dashboard-input-password');
@@ -2367,8 +2215,7 @@ function closeLoadConfigModal() {
 }
 
 function setupModals() {
-  // Load config modal dynamic eye toggle
-  setupDynamicPasswordInput('load-input-password', 'load-password-wrap', 'btn-toggle-load-eye', 'load-eye-show', 'load-eye-hide');
+    setupDynamicPasswordInput('load-input-password', 'load-password-wrap', 'btn-toggle-load-eye', 'load-eye-show', 'load-eye-hide');
 
   document.getElementById('btn-close-load-modal')?.addEventListener('click', closeLoadConfigModal);
   document.getElementById('btn-cancel-load-modal')?.addEventListener('click', closeLoadConfigModal);
@@ -2420,8 +2267,7 @@ function setupModals() {
     }
   });
 
-  // Nuvio modal
-  document.getElementById('btn-close-nuvio-modal')?.addEventListener('click', () => {
+    document.getElementById('btn-close-nuvio-modal')?.addEventListener('click', () => {
     closeModal('modal-nuvio');
   });
 
@@ -2429,8 +2275,7 @@ function setupModals() {
     closeModal('modal-nuvio');
   });
 
-  // Click outside backdrop to close any modal smoothly
-  document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
     backdrop.addEventListener('click', (e) => {
       if (e.target === backdrop) {
         closeModal(backdrop);
@@ -2480,9 +2325,6 @@ async function openNuvioModal() {
   openModal('modal-nuvio');
 }
 
-// =============================================================================
-// 14. Stats & Rendering Helpers
-// =============================================================================
 function updateStats() {
   const activeSvcCount = Object.keys(state.config.providers).filter(
     k => state.config.providers[k]?.enabled === true
