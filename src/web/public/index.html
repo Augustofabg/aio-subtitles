@@ -28,8 +28,9 @@
       </div>
       <h1 class="landing-title" id="landing-title">AIOSubs</h1>
       <p class="landing-desc" id="landing-desc">The all-in-one subtitles addon for Stremio. Configure your addon or manage this instance via the dashboard.</p>
-      <div class="landing-actions">
+      <div class="landing-actions" id="landing-actions-container">
         <button class="btn btn-primary btn-landing-pill" id="btn-landing-configure">Configure</button>
+        <button class="btn btn-outline btn-landing-pill" id="btn-landing-new" style="display: none;">+ New Configuration</button>
         <button class="btn btn-secondary btn-landing-pill" id="btn-landing-dashboard">Dashboard</button>
       </div>
     </div>
@@ -119,8 +120,8 @@
 
       <!-- Topbar (Clean navigation: [Previous] [Next]) -->
       <header class="topbar">
-        <div class="topbar-left">
-          <!-- Clean left topbar -->
+        <div class="topbar-left" id="topbar-session-info" style="display: flex; align-items: center; gap: 8px;">
+          <!-- Populated dynamically via app.js -->
         </div>
 
         <div class="topbar-right">
@@ -1117,13 +1118,17 @@
               </div>
 
               <!-- Save button row (Aligned to LEFT) -->
-              <div class="save-config-actions-row">
+              <div class="save-config-actions-row" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                 <button class="btn btn-primary btn-save-pill" id="btn-explicit-save">
                   Save
                 </button>
                 <button class="btn-link-subtle" id="btn-trigger-load-config"
                   title="Load an existing configuration">
                   Load Existing Config
+                </button>
+                <button class="btn-link-subtle" id="btn-trigger-new-config"
+                  title="Start a fresh configuration with a new UUID and password" style="color: #a78bfa; font-weight: 500;">
+                  + New Configuration
                 </button>
               </div>
             </div>

@@ -295,41 +295,6 @@ async function loadInitialConfiguration() {
   }
 
   if (firstPart === 'configure') {
-    const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
-    if (sessionUuid && isUuid(sessionUuid)) {
-      const storedPass = localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '';
-      if (storedPass) {
-        try {
-          const res = await fetch('/api/config/load', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ uuid: sessionUuid, password: storedPass })
-          });
-          const data = await res.json();
-          if (res.ok && data.success && data.config) {
-            state.uuid = sessionUuid;
-            state.password = storedPass;
-            state.isConfigCreated = true;
-            applyConfigWithMigration(data.config);
-            state.lastSavedConfigJson = JSON.stringify(state.config);
-            window.history.replaceState(null, '', `/${state.uuid}/configure`);
-            showWizardView();
-            navigateToPage('home');
-            checkSavedDraft();
-            return;
-          }
-        } catch (err) {
-          console.error('[Session] Error restoring config for session UUID:', err);
-        }
-      }
-      state.uuid = sessionUuid;
-      state.isConfigCreated = true;
-      window.history.replaceState(null, '', `/${state.uuid}/configure`);
-      showWizardView();
-      navigateToPage('home');
-      return;
-    }
-
     state.isConfigCreated = false;
     state.uuid = '';
     state.password = '';
@@ -493,7 +458,66 @@ function applyConfigWithMigration(parsed) {
   state.config = merged;
 }
 
+function startNewConfiguration() {
+  state.uuid = '';
+  state.password = '';
+  state.isConfigCreated = false;
+  state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  state.lastSavedConfigJson = '';
+  state.validatedKeys = {};
+  localStorage.removeItem('aiosubtitles_current_uuid');
+
+  const passInput = document.getElementById('create-input-password');
+  const confirmInput = document.getElementById('create-input-confirm-password');
+  const errBox = document.getElementById('create-config-error');
+  if (passInput) {
+    passInput.value = '';
+    passInput.dispatchEvent(new Event('input'));
+  }
+  if (confirmInput) {
+    confirmInput.value = '';
+    confirmInput.dispatchEvent(new Event('input'));
+  }
+  if (errBox) errBox.style.display = 'none';
+
+  window.history.pushState(null, '', '/configure');
+  showWizardView();
+  navigateToPage('home');
+  renderAll();
+  showToast('Started new configuration! Set your password in the Install tab to save.');
+}
+
+function renderLandingActions() {
+  const sessionUuid = localStorage.getItem('aiosubtitles_current_uuid');
+  const btnConfig = document.getElementById('btn-landing-configure');
+  const btnNew = document.getElementById('btn-landing-new');
+
+  if (sessionUuid && isUuid(sessionUuid)) {
+    if (btnConfig) {
+      btnConfig.textContent = `Continue (${sessionUuid.substring(0, 8)}...)`;
+      btnConfig.title = `Resume editing UUID ${sessionUuid}`;
+    }
+    if (btnNew) {
+      btnNew.style.display = 'inline-flex';
+    }
+  } else {
+    if (btnConfig) {
+      btnConfig.textContent = 'Configure';
+      btnConfig.title = 'Create a new configuration';
+    }
+    if (btnNew) {
+      btnNew.style.display = 'none';
+    }
+  }
+}
+
 function setupLandingActions() {
+  renderLandingActions();
+
+  document.getElementById('btn-landing-new')?.addEventListener('click', () => {
+    startNewConfiguration();
+  });
+
   document.getElementById('btn-landing-configure')?.addEventListener('click', async () => {
     const sessionUuid = state.uuid || localStorage.getItem('aiosubtitles_current_uuid');
     const storedPass = sessionUuid ? (state.password || localStorage.getItem(`aiosubtitles_pass_${sessionUuid}`) || '') : '';
@@ -531,15 +555,7 @@ function setupLandingActions() {
       return;
     }
 
-    state.isConfigCreated = false;
-    state.uuid = '';
-    state.password = '';
-    applyConfigWithMigration(DEFAULT_CONFIG);
-    state.lastSavedConfigJson = '';
-    window.history.pushState(null, '', '/configure');
-    showWizardView();
-    navigateToPage('home');
-    renderAll();
+    startNewConfiguration();
   });
 
   document.getElementById('btn-landing-dashboard')?.addEventListener('click', () => {
@@ -2369,6 +2385,13 @@ function setupInstallPageActions() {
     saveCurrentConfiguration(false);
   });
 
+  document.getElementById('btn-trigger-new-config')?.addEventListener('click', () => {
+    if (confirm('Do you want to start a new configuration with a fresh UUID and password?')) {
+      startNewConfiguration();
+      navigateToPage('install');
+    }
+  });
+
     document.getElementById('btn-copy-manifest')?.addEventListener('click', () => {
     const input = document.getElementById('final-manifest-url');
     if (input && input.value && state.isConfigCreated && state.uuid) {
@@ -2894,6 +2917,32 @@ function updateStats() {
   }
 }
 
+function renderTopbarSession() {
+  const topbar = document.getElementById('topbar-session-info');
+  if (!topbar) return;
+  if (state.uuid && state.isConfigCreated) {
+    topbar.innerHTML = `
+      <span style="font-size: 11.5px; color: var(--text-muted); font-family: monospace; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+        UUID: ${state.uuid.substring(0, 8)}...
+      </span>
+      <button class="btn btn-outline btn-sm" id="btn-topbar-new-config" style="height: 26px; font-size: 11.5px; border-radius: 9999px; padding: 0 10px;" title="Start a fresh configuration">
+        + New Config
+      </button>
+    `;
+    document.getElementById('btn-topbar-new-config')?.addEventListener('click', () => {
+      if (confirm('Start a new configuration with a fresh UUID and password?')) {
+        startNewConfiguration();
+      }
+    });
+  } else {
+    topbar.innerHTML = `
+      <span style="font-size: 11.5px; color: #a78bfa; font-weight: 500; background: rgba(167, 139, 250, 0.1); padding: 3px 8px; border-radius: 6px;">
+        ● New Configuration (Not yet saved)
+      </span>
+    `;
+  }
+}
+
 function renderAll() {
   renderHomeBranding();
   renderServicesState();
@@ -2905,6 +2954,7 @@ function renderAll() {
   renderFormatterState();
   renderAlignmentState();
   renderInstallPageDetails();
+  renderTopbarSession();
   updateStats();
 }
 
