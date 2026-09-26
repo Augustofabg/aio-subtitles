@@ -245,26 +245,34 @@ export function createServer(): express.Application {
       return;
     }
 
-    if (service === 'opensubtitles') {
-      try {
-        const response = await axios.get('https://api.opensubtitles.com/api/v1/infos/user', {
-          headers: {
-            'Api-Key': apiKey,
-            'User-Agent': 'AIOSubtitles/1.0.0'
-          },
-          timeout: 6000
-        });
-        if (response.status === 200) {
-          res.json({ valid: true });
-          return;
-        }
-        res.json({ valid: false, error: 'Resposta inesperada' });
-      } catch {
-        res.json({ valid: false, error: 'Chave inválida ou sem permissão no OpenSubtitles' });
-      }
+if (service === 'opensubtitles') {
+  try {
+    const response = await axios.get('https://api.opensubtitles.com/api/v1/subtitles', {
+      params: {
+        imdb_id: 'tt0133093',
+        type: 'movie',
+        languages: 'pt-BR'
+      },
+      headers: {
+        'Api-Key': apiKey,
+        'User-Agent': 'AIOSubtitles/1.0.0',
+        'Content-Type': 'application/json'
+      },
+      timeout: 6000
+    });
+
+    if (response.status === 200) {
+      res.json({ valid: true });
       return;
     }
 
+    res.json({ valid: false, error: 'Resposta inesperada' });
+  } catch {
+    res.json({ valid: false, error: 'Chave inválida ou sem permissão no OpenSubtitles' });
+  }
+
+  return;
+}
     if (service === 'subdl') {
       try {
         const response = await axios.get('https://api.subdl.com/api/v1/subtitles', {
