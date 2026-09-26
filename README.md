@@ -9,7 +9,7 @@
 ![My Skills](https://skillicons.dev/icons?i=ts,nodejs,js,html,css,docker)
 [![Supabase](https://skillicons.dev/icons?i=supabase)](https://supabase.com/)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPLv3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Render Deploy](https://img.shields.io/badge/deploy-Render-46E3B7.svg)](https://render.com/)
 
 <p align="center">
